@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function Header() {
     const logoStorageId = useQuery(api.writings.getSetting, {
@@ -15,21 +15,6 @@ export default function Header() {
     );
 
     const [mobileOpen, setMobileOpen] = useState(false);
-
-    // Set the favicon dynamically when logo changes
-    useEffect(() => {
-        if (logoUrl) {
-            const link =
-                (document.querySelector("link[rel='icon']") as HTMLLinkElement) ||
-                document.createElement("link");
-            link.rel = "icon";
-            link.href = logoUrl;
-            link.type = "image/png";
-            if (!document.querySelector("link[rel='icon']")) {
-                document.head.appendChild(link);
-            }
-        }
-    }, [logoUrl]);
 
     return (
         <>

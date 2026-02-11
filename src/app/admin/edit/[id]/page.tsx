@@ -24,6 +24,7 @@ export default function EditPage() {
     });
     const updateWriting = useMutation(api.writings.update);
     const setSetting = useMutation(api.writings.setSetting);
+    const generateUploadUrl = useMutation(api.writings.generateUploadUrl);
 
     // Custom categories
     const customCatsRaw = useQuery(api.writings.getSetting, {
@@ -39,13 +40,22 @@ export default function EditPage() {
     const [slug, setSlug] = useState("");
     const [category, setCategory] = useState("");
     const [colorTag, setColorTag] = useState("");
+    const [coverImageId, setCoverImageId] = useState("");
     const [saving, setSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [initialized, setInitialized] = useState(false);
     const [newCategory, setNewCategory] = useState("");
     const [showNewCat, setShowNewCat] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
+    const coverInputRef = useRef<HTMLInputElement>(null);
     const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+
+    // Get cover image URL
+    const coverUrl = useQuery(
+        api.writings.getFileUrl,
+        coverImageId ? { storageId: coverImageId } : "skip"
+    );
 
     useEffect(() => {
         if (writing && !initialized) {
@@ -54,6 +64,7 @@ export default function EditPage() {
             setSlug(writing.slug);
             setCategory(writing.category || "");
             setColorTag(writing.colorTag || "");
+            setCoverImageId(writing.coverImageId || "");
             setInitialized(true);
         }
     }, [writing, initialized]);
@@ -74,6 +85,7 @@ export default function EditPage() {
                     slug: generateSlug(t),
                     category: category || undefined,
                     colorTag: colorTag || undefined,
+                    coverImageId: coverImageId || undefined,
                 });
                 setLastSaved(new Date());
             } catch (err) {
@@ -81,7 +93,7 @@ export default function EditPage() {
             }
             setSaving(false);
         },
-        [id, updateWriting, category, colorTag]
+        [id, updateWriting, category, colorTag, coverImageId]
     );
 
     const triggerAutoSave = useCallback(
@@ -119,6 +131,40 @@ export default function EditPage() {
         setShowNewCat(false);
     };
 
+    const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            alert("Please select an image file.");
+            return;
+        }
+        setUploading(true);
+        try {
+            const uploadUrl = await generateUploadUrl();
+            const response = await fetch(uploadUrl, {
+                method: "POST",
+                headers: { "Content-Type": file.type },
+                body: file,
+            });
+            if (!response.ok) throw new Error("Upload failed");
+            const { storageId } = await response.json();
+            setCoverImageId(storageId);
+            // Auto-save with new cover
+            await updateWriting({
+                id: id as Id<"writings">,
+                coverImageId: storageId,
+            });
+        } catch (err) {
+            console.error("Cover upload failed:", err);
+            alert("Upload failed. Please try again.");
+        }
+        setUploading(false);
+        if (coverInputRef.current) coverInputRef.current.value = "";
+    };
+
+    const hasChapters =
+        category === "Novel" || category === "Short Stories";
+
     if (writing === undefined) {
         return (
             <div className="loading-center">
@@ -149,13 +195,23 @@ export default function EditPage() {
                         <span className="save-indicator">Saved</span>
                     )}
                 </div>
-                <button
-                    onClick={handleTogglePublish}
-                    disabled={saving}
-                    className="btn"
-                >
-                    {writing.published ? "Unpublish" : "Publish"}
-                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                    {hasChapters && (
+                        <button
+                            onClick={() => router.push(`/admin/edit/${id}/chapters`)}
+                            className="btn"
+                        >
+                            Chapters
+                        </button>
+                    )}
+                    <button
+                        onClick={handleTogglePublish}
+                        disabled={saving}
+                        className="btn"
+                    >
+                        {writing.published ? "Unpublish" : "Publish"}
+                    </button>
+                </div>
             </div>
 
             {slug && <p className="slug-preview">/{slug}</p>}
@@ -242,6 +298,47 @@ export default function EditPage() {
                 </div>
             </div>
 
+            {/* Cover Image Upload */}
+            <div className="cover-upload-section">
+                <label className="meta-label">Cover Image</label>
+                {coverUrl && (
+                    <div className="cover-preview-wrap">
+                        <img src={coverUrl} alt="Cover preview" className="cover-preview" />
+                        <button
+                            onClick={async () => {
+                                setCoverImageId("");
+                                await updateWriting({
+                                    id: id as Id<"writings">,
+                                    coverImageId: "",
+                                });
+                            }}
+                            className="btn btn-sm"
+                            style={{ marginTop: 8 }}
+                        >
+                            Remove
+                        </button>
+                    </div>
+                )}
+                <div className="cover-upload-area">
+                    <input
+                        ref={coverInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCoverUpload}
+                        disabled={uploading}
+                        className="cover-file-input"
+                    />
+                    {uploading && (
+                        <div className="cover-upload-overlay">
+                            <div className="spinner" />
+                            <span style={{ marginLeft: 10, fontSize: "0.8rem" }}>
+                                Uploading...
+                            </span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             <input
                 type="text"
                 value={title}
@@ -254,13 +351,29 @@ export default function EditPage() {
             />
 
             {initialized && (
-                <Editor
-                    content={content}
-                    onUpdate={(html) => {
-                        setContent(html);
-                        triggerAutoSave(title, html);
-                    }}
-                />
+                <>
+                    {hasChapters && (
+                        <div className="chapters-hint">
+                            <p>
+                                This is a <strong>{category}</strong>. Use the{" "}
+                                <strong>Chapters</strong> button above to manage chapters.
+                                The text area below is for the introduction/synopsis.
+                            </p>
+                        </div>
+                    )}
+                    <Editor
+                        content={content}
+                        onUpdate={(html) => {
+                            setContent(html);
+                            triggerAutoSave(title, html);
+                        }}
+                        placeholder={
+                            hasChapters
+                                ? "Write an introduction or synopsis..."
+                                : "Start writing..."
+                        }
+                    />
+                </>
             )}
         </div>
     );

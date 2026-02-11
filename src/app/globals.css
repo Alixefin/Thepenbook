@@ -1439,6 +1439,283 @@ img {
   flex-wrap: wrap;
 }
 
+/* ─── CAROUSEL ─── */
+.carousel-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-60%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-card-bg);
+  color: var(--color-text);
+  font-size: 1.3rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-family: var(--font-body);
+  padding: 0;
+  line-height: 1;
+}
+
+.carousel-arrow:hover {
+  background: var(--color-text);
+  color: var(--color-card-bg);
+  border-color: var(--color-text);
+}
+
+.carousel-arrow.left {
+  left: -20px;
+}
+
+.carousel-arrow.right {
+  right: -20px;
+}
+
+@media (max-width: 768px) {
+  .carousel-arrow.left {
+    left: -14px;
+  }
+
+  .carousel-arrow.right {
+    right: -14px;
+  }
+
+  .carousel-arrow {
+    width: 30px;
+    height: 30px;
+    font-size: 1.1rem;
+  }
+}
+
+.carousel-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-text);
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.carousel-dot.active {
+  background: var(--color-text);
+  transform: scale(1.25);
+}
+
+/* ─── COVER IMAGE UPLOAD ─── */
+.cover-upload-section {
+  margin-bottom: 20px;
+}
+
+.cover-preview-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.cover-preview {
+  width: 120px;
+  height: 170px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-strong);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.cover-upload-area {
+  position: relative;
+}
+
+.cover-file-input {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.cover-file-input::file-selector-button {
+  padding: 8px 18px;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 50px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.7rem;
+  font-family: var(--font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-right: 12px;
+  font-weight: 500;
+}
+
+.cover-file-input::file-selector-button:hover {
+  background: var(--color-text);
+  color: var(--color-card-bg);
+  border-color: var(--color-text);
+}
+
+.cover-upload-overlay {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+/* ─── COVER IMAGE ON BOOK CARD ─── */
+.book-card-cover {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+/* ─── READING PAGE COVER ─── */
+.reading-cover {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  margin-bottom: 32px;
+}
+
+/* ─── CHAPTERS HINT ─── */
+.chapters-hint {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+/* ─── CHAPTER EDITOR ─── */
+.chapter-editor {
+  margin-top: 20px;
+}
+
+.chapter-number {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--color-text);
+  color: var(--color-card-bg);
+  padding: 2px 8px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  margin-right: 4px;
+}
+
+/* ─── CHAPTER NAVIGATION (reading page) ─── */
+.chapter-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+.chapter-nav-btn {
+  font-size: 0.72rem;
+}
+
+.chapter-label {
+  display: block;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  font-family: var(--font-body);
+  font-weight: 500;
+}
+
+/* ─── TABLE OF CONTENTS ─── */
+.toc-section {
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid var(--color-border-strong);
+}
+
+.toc-heading {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+.toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toc-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.toc-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+  padding-left: 26px;
+}
+
+.toc-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.toc-item:hover .toc-number {
+  background: var(--color-text);
+  color: var(--color-card-bg);
+  border-color: var(--color-text);
+}
+
+.toc-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+}
+
 /* ─── FOOTER ─── */
 .site-footer {
   padding: 20px var(--gutter) 24px;

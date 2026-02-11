@@ -9,7 +9,14 @@ import {
   isNewWriting,
   isRecentlyUpdated,
 } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+
+/* ── tiny component to fetch a cover URL ── */
+function CoverImage({ storageId }: { storageId: string }) {
+  const url = useQuery(api.writings.getFileUrl, { storageId });
+  if (!url) return null;
+  return <img src={url} alt="" className="book-card-cover" />;
+}
 
 export default function HomePage() {
   const writings = useQuery(api.writings.listPublished);
@@ -24,6 +31,9 @@ export default function HomePage() {
   const allCategories = [...DEFAULT_CATEGORIES, ...customCats];
 
   const [activeCategory, setActiveCategory] = useState("All");
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const autoTimer = useRef<NodeJS.Timeout | null>(null);
+  const hoveringRef = useRef(false);
 
   // Filter writings by category
   const filteredWritings =
@@ -31,13 +41,56 @@ export default function HomePage() {
       ? writings.filter((w) => w.category === activeCategory)
       : writings;
 
-  // Latest writing for the featured book
-  const latest = writings && writings.length > 0 ? writings[0] : null;
-
-  // Get only categories that have published writings
+  // Get used categories
   const usedCategories = writings
     ? allCategories.filter((cat) => writings.some((w) => w.category === cat))
     : [];
+
+  // Build carousel cards: one per used category (latest published)
+  const carouselCards = writings
+    ? usedCategories
+      .map((cat) => {
+        const latest = writings.find((w) => w.category === cat);
+        return latest ? { ...latest, _cat: cat } : null;
+      })
+      .filter(Boolean) as (typeof writings extends (infer U)[] | undefined
+        ? U & { _cat: string }
+        : never)[]
+    : [];
+
+  // If no per-category cards, fallback to latest single card
+  const showCarousel = carouselCards.length > 0;
+  const latest = writings && writings.length > 0 ? writings[0] : null;
+
+  // Bound carousel index
+  useEffect(() => {
+    if (carouselCards.length > 0 && carouselIndex >= carouselCards.length) {
+      setCarouselIndex(0);
+    }
+  }, [carouselCards.length, carouselIndex]);
+
+  // Auto-advance carousel
+  const advanceCarousel = useCallback(() => {
+    if (hoveringRef.current) return;
+    setCarouselIndex((prev) =>
+      carouselCards.length > 0 ? (prev + 1) % carouselCards.length : 0
+    );
+  }, [carouselCards.length]);
+
+  useEffect(() => {
+    if (carouselCards.length <= 1) return;
+    autoTimer.current = setInterval(advanceCarousel, 5000);
+    return () => {
+      if (autoTimer.current) clearInterval(autoTimer.current);
+    };
+  }, [advanceCarousel, carouselCards.length]);
+
+  const goPrev = () =>
+    setCarouselIndex((i) =>
+      i === 0 ? carouselCards.length - 1 : i - 1
+    );
+  const goNext = () =>
+    setCarouselIndex((i) => (i + 1) % carouselCards.length);
 
   return (
     <div>
@@ -79,9 +132,81 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Clickable Latest Book */}
-        <div className="featured-book">
-          {latest ? (
+        {/* ─── CAROUSEL ─── */}
+        <div
+          className="featured-book"
+          onMouseEnter={() => {
+            hoveringRef.current = true;
+          }}
+          onMouseLeave={() => {
+            hoveringRef.current = false;
+          }}
+        >
+          {showCarousel ? (
+            <div className="carousel-container">
+              {carouselCards.length > 1 && (
+                <button onClick={goPrev} className="carousel-arrow left">
+                  ‹
+                </button>
+              )}
+
+              <Link
+                href={`/${carouselCards[carouselIndex]?.slug}`}
+                className="book-card-link"
+                key={carouselCards[carouselIndex]?._id}
+              >
+                <div
+                  className="book-card"
+                  style={{
+                    borderLeft: carouselCards[carouselIndex]?.colorTag
+                      ? `4px solid ${carouselCards[carouselIndex].colorTag}`
+                      : undefined,
+                  }}
+                >
+                  {carouselCards[carouselIndex]?.coverImageId ? (
+                    <CoverImage
+                      storageId={carouselCards[carouselIndex].coverImageId!}
+                    />
+                  ) : (
+                    <>
+                      <p className="book-card-label">Latest</p>
+                      <h4 className="book-card-title">
+                        {carouselCards[carouselIndex]?.title}
+                      </h4>
+                    </>
+                  )}
+                  {carouselCards[carouselIndex]?.category && (
+                    <span className="book-card-category">
+                      {carouselCards[carouselIndex].category}
+                    </span>
+                  )}
+                  <div className="book-card-divider" />
+                  <p className="book-card-author">
+                    {signature || "The Pen Book"}
+                  </p>
+                </div>
+              </Link>
+
+              {carouselCards.length > 1 && (
+                <button onClick={goNext} className="carousel-arrow right">
+                  ›
+                </button>
+              )}
+
+              {/* Dots */}
+              {carouselCards.length > 1 && (
+                <div className="carousel-dots">
+                  {carouselCards.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCarouselIndex(i)}
+                      className={`carousel-dot ${i === carouselIndex ? "active" : ""}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : latest ? (
             <Link href={`/${latest.slug}`} className="book-card-link">
               <div
                 className="book-card"
@@ -91,8 +216,14 @@ export default function HomePage() {
                     : undefined,
                 }}
               >
-                <p className="book-card-label">Latest</p>
-                <h4 className="book-card-title">{latest.title}</h4>
+                {latest.coverImageId ? (
+                  <CoverImage storageId={latest.coverImageId} />
+                ) : (
+                  <>
+                    <p className="book-card-label">Latest</p>
+                    <h4 className="book-card-title">{latest.title}</h4>
+                  </>
+                )}
                 {latest.category && (
                   <span className="book-card-category">
                     {latest.category}

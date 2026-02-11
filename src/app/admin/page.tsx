@@ -24,6 +24,9 @@ export default function AdminDashboard() {
         }
     };
 
+    const hasChapters = (category?: string) =>
+        category === "Novel" || category === "Short Stories";
+
     return (
         <div>
             <h2 className="admin-heading">All Writings</h2>
@@ -80,6 +83,15 @@ export default function AdminDashboard() {
                                 </p>
                             </div>
                             <div className="admin-item-actions">
+                                {hasChapters(writing.category) && (
+                                    <Link
+                                        href={`/admin/edit/${writing._id}/chapters`}
+                                        className="btn btn-sm"
+                                        title="Manage chapters"
+                                    >
+                                        Ch
+                                    </Link>
+                                )}
                                 <button
                                     onClick={() =>
                                         handleTogglePublish(writing._id, writing.published)

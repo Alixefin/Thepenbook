@@ -5,23 +5,78 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Extension } from "@tiptap/core";
 
-// Custom extension to handle Tab key for indentation
-const TabHandler = Extension.create({
-    name: "tabHandler",
+// Custom extension: Indent/outdent paragraphs with Tab / Shift+Tab
+const Indent = Extension.create({
+    name: "indent",
+
+    addGlobalAttributes() {
+        return [
+            {
+                types: ["paragraph", "heading"],
+                attributes: {
+                    indent: {
+                        default: 0,
+                        parseHTML: (element) => {
+                            const ml = element.style.marginLeft;
+                            if (ml) {
+                                return parseInt(ml, 10) / 32 || 0;
+                            }
+                            return 0;
+                        },
+                        renderHTML: (attributes) => {
+                            if (!attributes.indent || attributes.indent <= 0) return {};
+                            return {
+                                style: `margin-left: ${attributes.indent * 32}px`,
+                            };
+                        },
+                    },
+                },
+            },
+        ];
+    },
+
     addKeyboardShortcuts() {
         return {
             Tab: ({ editor }) => {
-                // In lists, increase indent
-                if (editor.isActive("bulletList") || editor.isActive("orderedList")) {
-                    return false; // let default list behavior handle it
+                // In lists, let default behavior handle it
+                if (
+                    editor.isActive("bulletList") ||
+                    editor.isActive("orderedList")
+                ) {
+                    return false;
                 }
-                // Otherwise insert a tab (4 spaces)
-                editor.chain().focus().insertContent("\u00A0\u00A0\u00A0\u00A0").run();
+                const { indent = 0 } = editor.getAttributes("paragraph") ||
+                    editor.getAttributes("heading") || {};
+                if (indent < 10) {
+                    editor
+                        .chain()
+                        .focus()
+                        .updateAttributes(
+                            editor.isActive("heading") ? "heading" : "paragraph",
+                            { indent: indent + 1 }
+                        )
+                        .run();
+                }
                 return true;
             },
             "Shift-Tab": ({ editor }) => {
-                if (editor.isActive("bulletList") || editor.isActive("orderedList")) {
+                if (
+                    editor.isActive("bulletList") ||
+                    editor.isActive("orderedList")
+                ) {
                     return false;
+                }
+                const { indent = 0 } = editor.getAttributes("paragraph") ||
+                    editor.getAttributes("heading") || {};
+                if (indent > 0) {
+                    editor
+                        .chain()
+                        .focus()
+                        .updateAttributes(
+                            editor.isActive("heading") ? "heading" : "paragraph",
+                            { indent: indent - 1 }
+                        )
+                        .run();
                 }
                 return true;
             },
@@ -51,7 +106,7 @@ export default function Editor({
             Placeholder.configure({
                 placeholder,
             }),
-            TabHandler,
+            Indent,
         ],
         content,
         editorProps: {
@@ -71,6 +126,41 @@ export default function Editor({
             </div>
         );
     }
+
+    // Indent helpers for toolbar buttons
+    const handleIndent = () => {
+        const { indent = 0 } =
+            editor.getAttributes("paragraph") ||
+            editor.getAttributes("heading") ||
+            {};
+        if (indent < 10) {
+            editor
+                .chain()
+                .focus()
+                .updateAttributes(
+                    editor.isActive("heading") ? "heading" : "paragraph",
+                    { indent: indent + 1 }
+                )
+                .run();
+        }
+    };
+
+    const handleOutdent = () => {
+        const { indent = 0 } =
+            editor.getAttributes("paragraph") ||
+            editor.getAttributes("heading") ||
+            {};
+        if (indent > 0) {
+            editor
+                .chain()
+                .focus()
+                .updateAttributes(
+                    editor.isActive("heading") ? "heading" : "paragraph",
+                    { indent: indent - 1 }
+                )
+                .run();
+        }
+    };
 
     return (
         <div className="editor-wrapper">
@@ -129,6 +219,25 @@ export default function Editor({
                     title="Ordered List"
                 >
                     1.
+                </button>
+
+                <span className="toolbar-divider" />
+
+                <button
+                    type="button"
+                    onClick={handleOutdent}
+                    className="toolbar-btn"
+                    title="Outdent (Shift+Tab)"
+                >
+                    ←
+                </button>
+                <button
+                    type="button"
+                    onClick={handleIndent}
+                    className="toolbar-btn"
+                    title="Indent (Tab)"
+                >
+                    →
                 </button>
             </div>
 

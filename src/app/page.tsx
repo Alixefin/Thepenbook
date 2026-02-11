@@ -3,19 +3,47 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import Link from "next/link";
-import { formatDate } from "@/lib/utils";
+import {
+  formatDate,
+  DEFAULT_CATEGORIES,
+  isNewWriting,
+  isRecentlyUpdated,
+} from "@/lib/utils";
+import { useState } from "react";
 
 export default function HomePage() {
   const writings = useQuery(api.writings.listPublished);
   const signature = useQuery(api.writings.getSetting, { key: "signature" });
+  const customCatsRaw = useQuery(api.writings.getSetting, {
+    key: "customCategories",
+  });
+
+  const customCats: string[] = customCatsRaw
+    ? JSON.parse(customCatsRaw)
+    : [];
+  const allCategories = [...DEFAULT_CATEGORIES, ...customCats];
+
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  // Filter writings by category
+  const filteredWritings =
+    writings && activeCategory !== "All"
+      ? writings.filter((w) => w.category === activeCategory)
+      : writings;
+
+  // Latest writing for the featured book
+  const latest = writings && writings.length > 0 ? writings[0] : null;
+
+  // Get only categories that have published writings
+  const usedCategories = writings
+    ? allCategories.filter((cat) => writings.some((w) => w.category === cat))
+    : [];
 
   return (
     <div>
       {/* ─── HERO SECTION ─── */}
       <section className="hero">
-        <h2 className="hero-heading">
-          Stories that stay with you&nbsp;!
-        </h2>
+        <h2 className="hero-heading">Stories that stay with you&nbsp;!</h2>
       </section>
 
       {/* ─── FEATURED SECTION ─── */}
@@ -44,103 +72,51 @@ export default function HomePage() {
               </h3>
               <p className="author-role">A space for words</p>
               <p className="featured-quote">
-                &ldquo;Stories crafted with care, designed to stay with
-                you long after the last word.&rdquo;
+                &ldquo;Stories crafted with care, designed to stay with you long
+                after the last word.&rdquo;
               </p>
             </>
           )}
         </div>
 
+        {/* Clickable Latest Book */}
         <div className="featured-book">
-          <div
-            style={{
-              width: 220,
-              height: 300,
-              background: "linear-gradient(145deg, #fef3e6, #f5e6d0)",
-              borderRadius: 8,
-              boxShadow: "0 20px 60px rgba(0,0,0,0.12)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 24,
-              textAlign: "center",
-            }}
-          >
-            <p
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "0.85rem",
-                color: "#999",
-                marginBottom: 8,
-              }}
-            >
-              Latest
-            </p>
-            <h4
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "1.4rem",
-                fontStyle: "italic",
-                lineHeight: 1.2,
-                color: "#1a1a1a",
-                marginBottom: 16,
-              }}
-            >
-              {writings && writings.length > 0
-                ? writings[0].title
-                : "The Art of Writing"}
-            </h4>
-            <div
-              style={{
-                width: 40,
-                height: 1,
-                background: "#ccc",
-                marginBottom: 16,
-              }}
-            />
-            <p
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "0.7rem",
-                letterSpacing: "0.15em",
-                color: "#999",
-              }}
-            >
-              {signature || "The Pen Book"}
-            </p>
-          </div>
+          {latest ? (
+            <Link href={`/${latest.slug}`} className="book-card-link">
+              <div
+                className="book-card"
+                style={{
+                  borderLeft: latest.colorTag
+                    ? `4px solid ${latest.colorTag}`
+                    : undefined,
+                }}
+              >
+                <p className="book-card-label">Latest</p>
+                <h4 className="book-card-title">{latest.title}</h4>
+                {latest.category && (
+                  <span className="book-card-category">
+                    {latest.category}
+                  </span>
+                )}
+                <div className="book-card-divider" />
+                <p className="book-card-author">
+                  {signature || "The Pen Book"}
+                </p>
+              </div>
+            </Link>
+          ) : (
+            <div className="book-card">
+              <p className="book-card-label">Latest</p>
+              <h4 className="book-card-title">The Art of Writing</h4>
+              <div className="book-card-divider" />
+              <p className="book-card-author">The Pen Book</p>
+            </div>
+          )}
         </div>
 
         <div className="featured-video">
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 200,
-              aspectRatio: "4/3",
-              background: "linear-gradient(145deg, #f0e8dd, #e8ddd0)",
-              borderRadius: 12,
-              boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                background: "rgba(0,0,0,0.6)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontSize: 14,
-              }}
-            >
-              ▶
-            </div>
+          <div className="video-placeholder">
+            <div className="video-play-btn">▶</div>
           </div>
         </div>
       </section>
@@ -149,30 +125,76 @@ export default function HomePage() {
       <section className="writings-section" id="writings">
         <h3 className="writings-section-title">All Writings</h3>
 
+        {/* Category Filter Tabs */}
+        {usedCategories.length > 0 && (
+          <div className="category-tabs">
+            <button
+              onClick={() => setActiveCategory("All")}
+              className={`category-tab ${activeCategory === "All" ? "active" : ""}`}
+            >
+              All
+            </button>
+            {usedCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`category-tab ${activeCategory === cat ? "active" : ""}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
         {writings === undefined && (
           <div className="loading-center">
             <div className="spinner" />
           </div>
         )}
 
-        {writings && writings.length === 0 && (
+        {filteredWritings && filteredWritings.length === 0 && (
           <div className="empty-state">
             <h2 className="empty-title">Nothing yet.</h2>
             <p className="empty-subtitle">
-              The first words are yet to be written.
+              {activeCategory !== "All"
+                ? `No writings in "${activeCategory}" yet.`
+                : "The first words are yet to be written."}
             </p>
           </div>
         )}
 
-        {writings &&
-          writings.length > 0 &&
-          writings.map((writing) => (
+        {filteredWritings &&
+          filteredWritings.length > 0 &&
+          filteredWritings.map((writing) => (
             <Link key={writing._id} href={`/${writing.slug}`}>
               <article className="writing-item">
-                <h2 className="writing-title">{writing.title}</h2>
-                <time className="writing-date">
-                  {formatDate(writing._creationTime)}
-                </time>
+                <div className="writing-item-top">
+                  {writing.colorTag && (
+                    <span
+                      className="color-dot"
+                      style={{ background: writing.colorTag }}
+                    />
+                  )}
+                  <h2 className="writing-title">{writing.title}</h2>
+                  {isNewWriting(writing._creationTime) && (
+                    <span className="update-badge new">NEW</span>
+                  )}
+                  {!isNewWriting(writing._creationTime) &&
+                    isRecentlyUpdated(
+                      writing._creationTime,
+                      writing.updatedAt
+                    ) && (
+                      <span className="update-badge updated">UPDATED</span>
+                    )}
+                </div>
+                <div className="writing-item-bottom">
+                  <time className="writing-date">
+                    {formatDate(writing._creationTime)}
+                  </time>
+                  {writing.category && (
+                    <span className="category-badge">{writing.category}</span>
+                  )}
+                </div>
               </article>
             </Link>
           ))}

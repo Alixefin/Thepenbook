@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
-import { formatDate } from "@/lib/utils";
+import { formatDate, isNewWriting, isRecentlyUpdated } from "@/lib/utils";
 import { Id } from "../../../convex/_generated/dataModel";
 
 export default function AdminDashboard() {
@@ -51,12 +51,29 @@ export default function AdminDashboard() {
                         <div key={writing._id} className="admin-item">
                             <div className="admin-item-info">
                                 <div className="admin-item-title">
+                                    {writing.colorTag && (
+                                        <span
+                                            className="color-dot"
+                                            style={{ background: writing.colorTag }}
+                                        />
+                                    )}
                                     {writing.title || "Untitled"}
                                     <span
                                         className={`status-badge ${writing.published ? "published" : ""}`}
                                     >
                                         {writing.published ? "Published" : "Draft"}
                                     </span>
+                                    {writing.category && (
+                                        <span className="category-badge">{writing.category}</span>
+                                    )}
+                                    {isNewWriting(writing._creationTime) && (
+                                        <span className="update-badge new">NEW</span>
+                                    )}
+                                    {!isNewWriting(writing._creationTime) &&
+                                        isRecentlyUpdated(
+                                            writing._creationTime,
+                                            writing.updatedAt
+                                        ) && <span className="update-badge updated">UPDATED</span>}
                                 </div>
                                 <p className="admin-item-meta">
                                     {formatDate(writing._creationTime)} &middot; /{writing.slug}

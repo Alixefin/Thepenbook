@@ -43,9 +43,20 @@ export default function ReadingPage() {
 
             <h1 className="reading-title">{writing.title}</h1>
 
-            <time className="reading-meta">
-                {formatDate(writing._creationTime)}
-            </time>
+            <div className="reading-meta-row">
+                <time className="reading-meta">
+                    {formatDate(writing._creationTime)}
+                </time>
+                {writing.category && (
+                    <span className="category-badge">{writing.category}</span>
+                )}
+                {writing.colorTag && (
+                    <span
+                        className="color-dot"
+                        style={{ background: writing.colorTag }}
+                    />
+                )}
+            </div>
 
             <div
                 className="prose"

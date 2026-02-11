@@ -23,6 +23,19 @@ export const listAll = query({
     },
 });
 
+export const listByCategory = query({
+    args: { category: v.string() },
+    handler: async (ctx, args) => {
+        const writings = await ctx.db
+            .query("writings")
+            .withIndex("by_category", (q) => q.eq("category", args.category))
+            .order("desc")
+            .filter((q) => q.eq(q.field("published"), true))
+            .collect();
+        return writings;
+    },
+});
+
 export const getBySlug = query({
     args: { slug: v.string() },
     handler: async (ctx, args) => {
@@ -47,6 +60,8 @@ export const create = mutation({
         content: v.string(),
         slug: v.string(),
         published: v.boolean(),
+        category: v.optional(v.string()),
+        colorTag: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const id = await ctx.db.insert("writings", {
@@ -54,6 +69,9 @@ export const create = mutation({
             content: args.content,
             slug: args.slug,
             published: args.published,
+            category: args.category,
+            colorTag: args.colorTag,
+            updatedAt: Date.now(),
         });
         return id;
     },
@@ -66,10 +84,12 @@ export const update = mutation({
         content: v.optional(v.string()),
         slug: v.optional(v.string()),
         published: v.optional(v.boolean()),
+        category: v.optional(v.string()),
+        colorTag: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const { id, ...fields } = args;
-        const updates: Record<string, unknown> = {};
+        const updates: Record<string, unknown> = { updatedAt: Date.now() };
         for (const [key, value] of Object.entries(fields)) {
             if (value !== undefined) {
                 updates[key] = value;

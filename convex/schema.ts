@@ -7,7 +7,12 @@ export default defineSchema({
     content: v.string(),
     slug: v.string(),
     published: v.boolean(),
-  }).index("by_slug", ["slug"]),
+    category: v.optional(v.string()),
+    colorTag: v.optional(v.string()),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_category", ["category"]),
 
   settings: defineTable({
     key: v.string(),

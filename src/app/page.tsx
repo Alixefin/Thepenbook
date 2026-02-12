@@ -12,10 +12,16 @@ import {
 import { useState, useEffect, useCallback, useRef } from "react";
 
 /* ── tiny component to fetch a cover URL ── */
-function CoverImage({ storageId }: { storageId: string }) {
+function CoverImage({
+  storageId,
+  className,
+}: {
+  storageId: string;
+  className?: string;
+}) {
   const url = useQuery(api.writings.getFileUrl, { storageId });
   if (!url) return null;
-  return <img src={url} alt="" className="book-card-cover" />;
+  return <img src={url} alt="" className={className || "book-card-cover"} />;
 }
 
 export default function HomePage() {
@@ -34,6 +40,17 @@ export default function HomePage() {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const autoTimer = useRef<NodeJS.Timeout | null>(null);
   const hoveringRef = useRef(false);
+
+  // Listen for category selection from header nav
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const cat = (e as CustomEvent).detail;
+      setActiveCategory(cat);
+      document.getElementById("writings")?.scrollIntoView({ behavior: "smooth" });
+    };
+    window.addEventListener("selectCategory", handler);
+    return () => window.removeEventListener("selectCategory", handler);
+  }, []);
 
   // Filter writings by category
   const filteredWritings =
@@ -58,9 +75,10 @@ export default function HomePage() {
         : never)[]
     : [];
 
-  // If no per-category cards, fallback to latest single card
-  const showCarousel = carouselCards.length > 0;
+  // Latest overall
   const latest = writings && writings.length > 0 ? writings[0] : null;
+  // Previous books (after latest, up to 3)
+  const previousBooks = writings ? writings.slice(1, 4) : [];
 
   // Bound carousel index
   useEffect(() => {
@@ -94,7 +112,7 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* ─── HERO SECTION ─── */}
+      {/* ─── HERO ─── */}
       <section className="hero">
         <h2 className="hero-heading">Stories that stay with you&nbsp;!</h2>
       </section>
@@ -102,7 +120,7 @@ export default function HomePage() {
       {/* ─── FEATURED SECTION ─── */}
       <section className="featured-section">
         <div className="featured-author">
-          {signature && (
+          {signature ? (
             <>
               <h3 className="author-name">
                 <em>{signature.split(" ")[0]}</em>
@@ -115,8 +133,7 @@ export default function HomePage() {
                 after you&apos;ve finished reading.&rdquo;
               </p>
             </>
-          )}
-          {!signature && (
+          ) : (
             <>
               <h3 className="author-name">
                 <em>The</em>
@@ -132,9 +149,9 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* ─── CAROUSEL ─── */}
+        {/* ─── BOOK DISPLAY: latest big + previous small ─── */}
         <div
-          className="featured-book"
+          className="featured-books-area"
           onMouseEnter={() => {
             hoveringRef.current = true;
           }}
@@ -142,42 +159,98 @@ export default function HomePage() {
             hoveringRef.current = false;
           }}
         >
-          {showCarousel ? (
-            <div className="carousel-container">
-              {carouselCards.length > 1 && (
-                <button onClick={goPrev} className="carousel-arrow left">
-                  ‹
-                </button>
-              )}
+          {/* Main latest card (large) */}
+          {carouselCards.length > 0 ? (
+            <div className="featured-main-book">
+              <div className="carousel-container">
+                {carouselCards.length > 1 && (
+                  <button onClick={goPrev} className="carousel-arrow left">
+                    ‹
+                  </button>
+                )}
 
-              <Link
-                href={`/${carouselCards[carouselIndex]?.slug}`}
-                className="book-card-link"
-                key={carouselCards[carouselIndex]?._id}
-              >
+                <Link
+                  href={`/${carouselCards[carouselIndex]?.slug}`}
+                  className="book-card-link"
+                  key={carouselCards[carouselIndex]?._id}
+                >
+                  <div
+                    className="book-card book-card-large"
+                    style={{
+                      borderLeft: carouselCards[carouselIndex]?.colorTag
+                        ? `4px solid ${carouselCards[carouselIndex].colorTag}`
+                        : undefined,
+                    }}
+                  >
+                    {carouselCards[carouselIndex]?.coverImageId ? (
+                      <CoverImage
+                        storageId={carouselCards[carouselIndex].coverImageId!}
+                        className="book-card-cover-large"
+                      />
+                    ) : (
+                      <>
+                        <p className="book-card-label">Latest</p>
+                        <h4 className="book-card-title">
+                          {carouselCards[carouselIndex]?.title}
+                        </h4>
+                      </>
+                    )}
+                    {carouselCards[carouselIndex]?.category && (
+                      <span className="book-card-category">
+                        {carouselCards[carouselIndex].category}
+                      </span>
+                    )}
+                    <div className="book-card-divider" />
+                    <p className="book-card-author">
+                      {signature || "The Pen Book"}
+                    </p>
+                  </div>
+                </Link>
+
+                {carouselCards.length > 1 && (
+                  <button onClick={goNext} className="carousel-arrow right">
+                    ›
+                  </button>
+                )}
+
+                {carouselCards.length > 1 && (
+                  <div className="carousel-dots">
+                    {carouselCards.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCarouselIndex(i)}
+                        className={`carousel-dot ${i === carouselIndex ? "active" : ""}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : latest ? (
+            <div className="featured-main-book">
+              <Link href={`/${latest.slug}`} className="book-card-link">
                 <div
-                  className="book-card"
+                  className="book-card book-card-large"
                   style={{
-                    borderLeft: carouselCards[carouselIndex]?.colorTag
-                      ? `4px solid ${carouselCards[carouselIndex].colorTag}`
+                    borderLeft: latest.colorTag
+                      ? `4px solid ${latest.colorTag}`
                       : undefined,
                   }}
                 >
-                  {carouselCards[carouselIndex]?.coverImageId ? (
+                  {latest.coverImageId ? (
                     <CoverImage
-                      storageId={carouselCards[carouselIndex].coverImageId!}
+                      storageId={latest.coverImageId}
+                      className="book-card-cover-large"
                     />
                   ) : (
                     <>
                       <p className="book-card-label">Latest</p>
-                      <h4 className="book-card-title">
-                        {carouselCards[carouselIndex]?.title}
-                      </h4>
+                      <h4 className="book-card-title">{latest.title}</h4>
                     </>
                   )}
-                  {carouselCards[carouselIndex]?.category && (
+                  {latest.category && (
                     <span className="book-card-category">
-                      {carouselCards[carouselIndex].category}
+                      {latest.category}
                     </span>
                   )}
                   <div className="book-card-divider" />
@@ -186,69 +259,53 @@ export default function HomePage() {
                   </p>
                 </div>
               </Link>
-
-              {carouselCards.length > 1 && (
-                <button onClick={goNext} className="carousel-arrow right">
-                  ›
-                </button>
-              )}
-
-              {/* Dots */}
-              {carouselCards.length > 1 && (
-                <div className="carousel-dots">
-                  {carouselCards.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCarouselIndex(i)}
-                      className={`carousel-dot ${i === carouselIndex ? "active" : ""}`}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
-          ) : latest ? (
-            <Link href={`/${latest.slug}`} className="book-card-link">
-              <div
-                className="book-card"
-                style={{
-                  borderLeft: latest.colorTag
-                    ? `4px solid ${latest.colorTag}`
-                    : undefined,
-                }}
-              >
-                {latest.coverImageId ? (
-                  <CoverImage storageId={latest.coverImageId} />
-                ) : (
-                  <>
-                    <p className="book-card-label">Latest</p>
-                    <h4 className="book-card-title">{latest.title}</h4>
-                  </>
-                )}
-                {latest.category && (
-                  <span className="book-card-category">
-                    {latest.category}
-                  </span>
-                )}
-                <div className="book-card-divider" />
-                <p className="book-card-author">
-                  {signature || "The Pen Book"}
-                </p>
-              </div>
-            </Link>
           ) : (
-            <div className="book-card">
-              <p className="book-card-label">Latest</p>
-              <h4 className="book-card-title">The Art of Writing</h4>
-              <div className="book-card-divider" />
-              <p className="book-card-author">The Pen Book</p>
+            <div className="featured-main-book">
+              <div className="book-card book-card-large">
+                <p className="book-card-label">Latest</p>
+                <h4 className="book-card-title">The Art of Writing</h4>
+                <div className="book-card-divider" />
+                <p className="book-card-author">The Pen Book</p>
+              </div>
             </div>
           )}
-        </div>
 
-        <div className="featured-video">
-          <div className="video-placeholder">
-            <div className="video-play-btn">▶</div>
-          </div>
+          {/* Previous books (smaller, beside the main) */}
+          {previousBooks.length > 0 && (
+            <div className="featured-side-books">
+              {previousBooks.map((book) => (
+                <Link
+                  key={book._id}
+                  href={`/${book.slug}`}
+                  className="book-card-link"
+                >
+                  <div
+                    className="book-card book-card-small"
+                    style={{
+                      borderLeft: book.colorTag
+                        ? `3px solid ${book.colorTag}`
+                        : undefined,
+                    }}
+                  >
+                    {book.coverImageId ? (
+                      <CoverImage
+                        storageId={book.coverImageId}
+                        className="book-card-cover-small"
+                      />
+                    ) : (
+                      <h4 className="book-card-title-sm">{book.title}</h4>
+                    )}
+                    {book.category && (
+                      <span className="book-card-category-sm">
+                        {book.category}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -324,6 +381,11 @@ export default function HomePage() {
                   </time>
                   {writing.category && (
                     <span className="category-badge">{writing.category}</span>
+                  )}
+                  {(writing.viewCount ?? 0) > 0 && (
+                    <span className="view-count">
+                      👁 {writing.viewCount}
+                    </span>
                   )}
                 </div>
               </article>

@@ -1,16 +1,99 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
-import { Suspense } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { Id } from "../../../convex/_generated/dataModel";
 
 function CoverImage({ storageId }: { storageId: string }) {
     const url = useQuery(api.writings.getFileUrl, { storageId });
     if (!url) return null;
     return <img src={url} alt="Cover" className="reading-cover" />;
+}
+
+/* ── Comments Section ── */
+function CommentsSection({ writingId }: { writingId: Id<"writings"> }) {
+    const comments = useQuery(api.writings.listComments, { writingId });
+    const addComment = useMutation(api.writings.addComment);
+    const [name, setName] = useState("");
+    const [text, setText] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name.trim() || !text.trim()) return;
+        setSubmitting(true);
+        try {
+            await addComment({ writingId, name: name.trim(), text: text.trim() });
+            setName("");
+            setText("");
+        } catch (err) {
+            console.error("Failed to post comment:", err);
+        }
+        setSubmitting(false);
+    };
+
+    return (
+        <div className="comments-section">
+            <h3 className="comments-heading">
+                Comments{" "}
+                {comments && comments.length > 0 && (
+                    <span className="comments-count">{comments.length}</span>
+                )}
+            </h3>
+
+            {/* Comment form */}
+            <form onSubmit={handleSubmit} className="comment-form">
+                <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    className="comment-input"
+                    required
+                />
+                <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Write a comment..."
+                    className="comment-textarea"
+                    rows={3}
+                    required
+                />
+                <button
+                    type="submit"
+                    disabled={submitting || !name.trim() || !text.trim()}
+                    className="btn"
+                >
+                    {submitting ? "Posting..." : "Post Comment"}
+                </button>
+            </form>
+
+            {/* Comments list */}
+            {comments && comments.length === 0 && (
+                <p className="comments-empty">
+                    No comments yet. Be the first to share your thoughts!
+                </p>
+            )}
+
+            {comments &&
+                comments.length > 0 &&
+                comments.map((c) => (
+                    <div key={c._id} className="comment-item">
+                        <div className="comment-header">
+                            <span className="comment-author">{c.name}</span>
+                            <time className="comment-time">
+                                {formatDate(c._creationTime)}
+                            </time>
+                        </div>
+                        <p className="comment-text">{c.text}</p>
+                    </div>
+                ))}
+        </div>
+    );
 }
 
 function ReadingContent() {
@@ -22,6 +105,16 @@ function ReadingContent() {
 
     const writing = useQuery(api.writings.getBySlug, { slug });
     const signature = useQuery(api.writings.getSetting, { key: "signature" });
+    const recordView = useMutation(api.writings.recordView);
+    const viewRecorded = useRef(false);
+
+    // Record view once
+    useEffect(() => {
+        if (writing && !viewRecorded.current) {
+            viewRecorded.current = true;
+            recordView({ id: writing._id });
+        }
+    }, [writing, recordView]);
 
     // Check if this writing supports chapters
     const hasChapters =
@@ -65,17 +158,21 @@ function ReadingContent() {
 
     // Published chapters only
     const publishedChapters = chapters
-        ? chapters.filter((ch) => ch.published)
+        ? chapters.filter((ch: { published: boolean }) => ch.published)
         : [];
 
     // Viewing a chapter
     if (chapterNumber && currentChapter) {
         const prevCh =
             chapterNumber > 1
-                ? publishedChapters.find((c) => c.chapterNumber === chapterNumber - 1)
+                ? publishedChapters.find(
+                    (c: { chapterNumber: number }) =>
+                        c.chapterNumber === chapterNumber - 1
+                )
                 : null;
         const nextCh = publishedChapters.find(
-            (c) => c.chapterNumber === chapterNumber + 1
+            (c: { chapterNumber: number }) =>
+                c.chapterNumber === chapterNumber + 1
         );
 
         return (
@@ -123,6 +220,9 @@ function ReadingContent() {
                         <span className="signature-text">— {signature}</span>
                     </div>
                 )}
+
+                {/* Comments under chapter too */}
+                <CommentsSection writingId={writing._id} />
             </div>
         );
     }
@@ -145,15 +245,13 @@ function ReadingContent() {
                 </Link>
                 <div className="empty-state">
                     <h2 className="empty-title">Chapter Not Found</h2>
-                    <p className="empty-subtitle">
-                        This chapter does not exist yet.
-                    </p>
+                    <p className="empty-subtitle">This chapter does not exist yet.</p>
                 </div>
             </div>
         );
     }
 
-    // Main writing view (overview + table of contents)
+    // Main writing view
     return (
         <div className="reading-container">
             <Link href="/" className="back-link">
@@ -168,7 +266,10 @@ function ReadingContent() {
             <h1 className="reading-title">{writing.title}</h1>
 
             <div className="reading-meta-row">
-                <time className="reading-meta" style={{ border: "none", padding: 0, margin: 0 }}>
+                <time
+                    className="reading-meta"
+                    style={{ border: "none", padding: 0, margin: 0 }}
+                >
                     {formatDate(writing._creationTime)}
                 </time>
                 {writing.category && (
@@ -180,6 +281,7 @@ function ReadingContent() {
                         style={{ background: writing.colorTag }}
                     />
                 )}
+                <span className="view-count">👁 {writing.viewCount || 0} reads</span>
             </div>
 
             {/* Synopsis / content */}
@@ -195,33 +297,42 @@ function ReadingContent() {
                 <div className="toc-section">
                     <h3 className="toc-heading">Chapters</h3>
                     <div className="toc-list">
-                        {publishedChapters.map((ch) => (
-                            <Link
-                                key={ch._id}
-                                href={`/${slug}?ch=${ch.chapterNumber}`}
-                                className="toc-item"
-                            >
-                                <span className="toc-number">{ch.chapterNumber}</span>
-                                <span className="toc-title">{ch.title}</span>
-                            </Link>
-                        ))}
+                        {publishedChapters.map(
+                            (ch: {
+                                _id: string;
+                                chapterNumber: number;
+                                title: string;
+                            }) => (
+                                <Link
+                                    key={ch._id}
+                                    href={`/${slug}?ch=${ch.chapterNumber}`}
+                                    className="toc-item"
+                                >
+                                    <span className="toc-number">{ch.chapterNumber}</span>
+                                    <span className="toc-title">{ch.title}</span>
+                                </Link>
+                            )
+                        )}
                     </div>
                 </div>
             )}
 
-            {hasChapters && publishedChapters.length === 0 && chapters !== undefined && (
-                <div className="toc-section">
-                    <p className="empty-subtitle">
-                        Chapters coming soon.
-                    </p>
-                </div>
-            )}
+            {hasChapters &&
+                publishedChapters.length === 0 &&
+                chapters !== undefined && (
+                    <div className="toc-section">
+                        <p className="empty-subtitle">Chapters coming soon.</p>
+                    </div>
+                )}
 
             {signature && (
                 <div className="writing-signature">
                     <span className="signature-text">— {signature}</span>
                 </div>
             )}
+
+            {/* Comments */}
+            <CommentsSection writingId={writing._id} />
         </div>
     );
 }

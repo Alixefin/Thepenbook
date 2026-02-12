@@ -80,6 +80,10 @@ export default function AdminDashboard() {
                                 </div>
                                 <p className="admin-item-meta">
                                     {formatDate(writing._creationTime)} &middot; /{writing.slug}
+                                    &nbsp;&middot;&nbsp;
+                                    <span className="view-count-inline">
+                                        👁 {writing.viewCount || 0}
+                                    </span>
                                 </p>
                             </div>
                             <div className="admin-item-actions">

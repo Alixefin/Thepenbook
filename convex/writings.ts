@@ -74,6 +74,7 @@ export const create = mutation({
             colorTag: args.colorTag,
             coverImageId: args.coverImageId,
             updatedAt: Date.now(),
+            viewCount: 0,
         });
         return id;
     },
@@ -105,7 +106,7 @@ export const update = mutation({
 export const remove = mutation({
     args: { id: v.id("writings") },
     handler: async (ctx, args) => {
-        // Also remove all chapters for this writing
+        // Remove all chapters
         const chapters = await ctx.db
             .query("chapters")
             .withIndex("by_writing", (q) => q.eq("writingId", args.id))
@@ -113,6 +114,65 @@ export const remove = mutation({
         for (const ch of chapters) {
             await ctx.db.delete(ch._id);
         }
+        // Remove all comments
+        const comments = await ctx.db
+            .query("comments")
+            .withIndex("by_writing", (q) => q.eq("writingId", args.id))
+            .collect();
+        for (const c of comments) {
+            await ctx.db.delete(c._id);
+        }
+        await ctx.db.delete(args.id);
+    },
+});
+
+// ─── VIEW TRACKING ───────────────────────────────────
+
+export const recordView = mutation({
+    args: { id: v.id("writings") },
+    handler: async (ctx, args) => {
+        const writing = await ctx.db.get(args.id);
+        if (writing) {
+            await ctx.db.patch(args.id, {
+                viewCount: (writing.viewCount || 0) + 1,
+            });
+        }
+    },
+});
+
+// ─── COMMENTS ────────────────────────────────────────
+
+export const listComments = query({
+    args: { writingId: v.id("writings") },
+    handler: async (ctx, args) => {
+        const comments = await ctx.db
+            .query("comments")
+            .withIndex("by_writing", (q) => q.eq("writingId", args.writingId))
+            .order("desc")
+            .collect();
+        return comments;
+    },
+});
+
+export const addComment = mutation({
+    args: {
+        writingId: v.id("writings"),
+        name: v.string(),
+        text: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const id = await ctx.db.insert("comments", {
+            writingId: args.writingId,
+            name: args.name,
+            text: args.text,
+        });
+        return id;
+    },
+});
+
+export const removeComment = mutation({
+    args: { id: v.id("comments") },
+    handler: async (ctx, args) => {
         await ctx.db.delete(args.id);
     },
 });
@@ -126,7 +186,6 @@ export const listChapters = query({
             .query("chapters")
             .withIndex("by_writing", (q) => q.eq("writingId", args.writingId))
             .collect();
-        // Sort by chapter number
         return chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
     },
 });
@@ -160,7 +219,6 @@ export const createChapter = mutation({
             published: args.published,
             updatedAt: Date.now(),
         });
-        // Also update writing's updatedAt
         await ctx.db.patch(args.writingId, { updatedAt: Date.now() });
         return id;
     },
@@ -184,7 +242,6 @@ export const updateChapter = mutation({
         }
         const chapter = await ctx.db.get(id);
         await ctx.db.patch(id, updates);
-        // Update writing's updatedAt
         if (chapter) {
             await ctx.db.patch(chapter.writingId, { updatedAt: Date.now() });
         }

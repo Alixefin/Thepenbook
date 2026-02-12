@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState } from "react";
+import { DEFAULT_CATEGORIES } from "@/lib/utils";
 
 export default function Header() {
     const logoStorageId = useQuery(api.writings.getSetting, {
@@ -13,8 +14,16 @@ export default function Header() {
         api.writings.getFileUrl,
         logoStorageId ? { storageId: logoStorageId } : "skip"
     );
+    const customCatsRaw = useQuery(api.writings.getSetting, {
+        key: "customCategories",
+    });
+    const customCats: string[] = customCatsRaw
+        ? JSON.parse(customCatsRaw)
+        : [];
+    const allCategories = [...DEFAULT_CATEGORIES, ...customCats];
 
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [catOpen, setCatOpen] = useState(false);
 
     return (
         <>
@@ -38,6 +47,35 @@ export default function Header() {
                 <nav className="header-nav">
                     <Link href="/">Home</Link>
                     <Link href="/#writings">All Writings</Link>
+                    {/* Categories dropdown */}
+                    <div
+                        className="nav-dropdown"
+                        onMouseEnter={() => setCatOpen(true)}
+                        onMouseLeave={() => setCatOpen(false)}
+                    >
+                        <button className="nav-dropdown-trigger">
+                            Categories <span className="dropdown-chevron">▾</span>
+                        </button>
+                        {catOpen && (
+                            <div className="nav-dropdown-menu">
+                                {allCategories.map((cat) => (
+                                    <Link
+                                        key={cat}
+                                        href={`/#writings?cat=${encodeURIComponent(cat)}`}
+                                        onClick={() => {
+                                            setCatOpen(false);
+                                            // Dispatch a custom event so the homepage can react
+                                            window.dispatchEvent(
+                                                new CustomEvent("selectCategory", { detail: cat })
+                                            );
+                                        }}
+                                    >
+                                        {cat}
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </nav>
 
                 {/* Right side - mobile menu only */}
@@ -69,6 +107,25 @@ export default function Header() {
                 <Link href="/#writings" onClick={() => setMobileOpen(false)}>
                     All Writings
                 </Link>
+                {/* Mobile categories list */}
+                <div className="mobile-cat-heading">Categories</div>
+                {allCategories.map((cat) => (
+                    <Link
+                        key={cat}
+                        href={`/#writings`}
+                        className="mobile-cat-link"
+                        onClick={() => {
+                            setMobileOpen(false);
+                            setTimeout(() => {
+                                window.dispatchEvent(
+                                    new CustomEvent("selectCategory", { detail: cat })
+                                );
+                            }, 100);
+                        }}
+                    >
+                        {cat}
+                    </Link>
+                ))}
             </div>
         </>
     );

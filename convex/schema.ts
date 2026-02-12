@@ -11,6 +11,7 @@ export default defineSchema({
     colorTag: v.optional(v.string()),
     updatedAt: v.optional(v.number()),
     coverImageId: v.optional(v.string()),
+    viewCount: v.optional(v.number()),
   })
     .index("by_slug", ["slug"])
     .index("by_category", ["category"]),
@@ -22,6 +23,12 @@ export default defineSchema({
     chapterNumber: v.number(),
     published: v.boolean(),
     updatedAt: v.optional(v.number()),
+  }).index("by_writing", ["writingId"]),
+
+  comments: defineTable({
+    writingId: v.id("writings"),
+    name: v.string(),
+    text: v.string(),
   }).index("by_writing", ["writingId"]),
 
   settings: defineTable({

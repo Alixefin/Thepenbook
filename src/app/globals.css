@@ -2008,6 +2008,134 @@ img {
   white-space: pre-wrap;
 }
 
+/* ─── SHARE CARD MODAL ─── */
+.share-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.share-modal {
+  background: var(--color-card-bg);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 420px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+  animation: modalUp 0.25s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes modalUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.share-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: color 0.2s;
+  line-height: 1;
+  padding: 0;
+}
+
+.share-close:hover {
+  color: var(--color-text);
+}
+
+.share-heading {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+.share-preview {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.share-card-img {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.share-link-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.share-link-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-family: var(--font-body);
+  background: transparent;
+  color: var(--color-text);
+  outline: none;
+}
+
+.share-link-input:focus {
+  border-color: var(--color-text);
+}
+
+.share-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.share-actions .btn {
+  flex: 1;
+  text-align: center;
+  justify-content: center;
+}
+
+.share-btn {
+  margin-left: auto;
+}
+
 /* ─── FOOTER ─── */
 .site-footer {
   padding: 20px var(--gutter) 24px;

@@ -7,6 +7,15 @@ import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
+import dynamic from "next/dynamic";
+
+const ShareCard = dynamic(() => import("@/components/ShareCard"), {
+    ssr: false,
+});
+
+function stripHtml(html: string): string {
+    return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
 
 function CoverImage({ storageId }: { storageId: string }) {
     const url = useQuery(api.writings.getFileUrl, { storageId });
@@ -107,6 +116,7 @@ function ReadingContent() {
     const signature = useQuery(api.writings.getSetting, { key: "signature" });
     const recordView = useMutation(api.writings.recordView);
     const viewRecorded = useRef(false);
+    const [showShare, setShowShare] = useState(false);
 
     // Record view once
     useEffect(() => {
@@ -282,6 +292,12 @@ function ReadingContent() {
                     />
                 )}
                 <span className="view-count">👁 {writing.viewCount || 0} reads</span>
+                <button
+                    onClick={() => setShowShare(true)}
+                    className="btn btn-sm share-btn"
+                >
+                    📤 Share
+                </button>
             </div>
 
             {/* Synopsis / content */}
@@ -333,6 +349,18 @@ function ReadingContent() {
 
             {/* Comments */}
             <CommentsSection writingId={writing._id} />
+
+            {/* Share modal */}
+            {showShare && (
+                <ShareCard
+                    title={writing.title}
+                    snippet={stripHtml(writing.content)}
+                    author={signature || "The Pen Book"}
+                    colorTag={writing.colorTag}
+                    slug={slug}
+                    onClose={() => setShowShare(false)}
+                />
+            )}
         </div>
     );
 }

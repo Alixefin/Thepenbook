@@ -16,6 +16,11 @@
   --color-border: rgba(0, 0, 0, 0.08);
   --color-border-strong: rgba(0, 0, 0, 0.15);
 
+  /* ─── DYNAMIC THEME COLORS (set by ThemeProvider) ─── */
+  --color-primary: #c9a96e; /* Day's primary hex color */
+  --color-accent-theme: #a88a5e; /* Day's accent color */
+  --color-primary-text: #1a1a1a; /* Auto-calculated contrast text */
+
   --radius: 24px;
   --gutter: 24px;
   --max-width: 1100px;
@@ -295,9 +300,10 @@ img {
   font-style: italic;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: var(--color-text);
+  color: var(--color-primary);
   max-width: 600px;
   margin: 0 auto;
+  transition: color 0.3s ease;
 }
 
 @media (min-width: 768px) {
@@ -518,7 +524,7 @@ img {
 .back-link {
   display: inline-block;
   padding: 8px 18px;
-  border: 1.5px solid var(--color-text);
+  border: 1.5px solid var(--color-primary);
   border-radius: 50px;
   font-size: 0.72rem;
   letter-spacing: 0.15em;
@@ -526,11 +532,12 @@ img {
   margin-bottom: 40px;
   transition: all 0.2s ease;
   font-weight: 500;
+  color: var(--color-primary);
 }
 
 .back-link:hover {
-  background: var(--color-text);
-  color: var(--color-card-bg);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .reading-title {
@@ -829,10 +836,10 @@ img {
   align-items: center;
   justify-content: center;
   padding: 10px 24px;
-  border: 1.5px solid var(--color-text);
+  border: 1.5px solid var(--color-primary);
   border-radius: 50px;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-primary);
   font-size: 0.72rem;
   font-family: var(--font-body);
   letter-spacing: 0.15em;
@@ -844,8 +851,8 @@ img {
 }
 
 .btn:hover {
-  background: var(--color-text);
-  color: var(--color-card-bg);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .btn:disabled {
@@ -1173,11 +1180,12 @@ img {
   text-transform: uppercase;
   padding: 3px 10px;
   border-radius: 50px;
-  border: 1px solid var(--color-accent);
-  color: var(--color-accent);
+  border: 1px solid var(--color-accent-theme);
+  color: var(--color-accent-theme);
   flex-shrink: 0;
   font-weight: 500;
   font-family: var(--font-body);
+  transition: all 0.3s ease;
 }
 
 /* ─── UPDATE BADGES ─── */

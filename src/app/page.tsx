@@ -10,19 +10,7 @@ import {
   isRecentlyUpdated,
 } from "@/lib/utils";
 import { useState, useEffect, useCallback, useRef } from "react";
-
-/* ── tiny component to fetch a cover URL ── */
-function CoverImage({
-  storageId,
-  className,
-}: {
-  storageId: string;
-  className?: string;
-}) {
-  const url = useQuery(api.writings.getFileUrl, { storageId });
-  if (!url) return null;
-  return <img src={url} alt="" className={className || "book-card-cover"} />;
-}
+import BookCover from "@/components/BookCover";
 
 export default function HomePage() {
   const writings = useQuery(api.writings.listPublished);
@@ -174,37 +162,15 @@ export default function HomePage() {
                   className="book-card-link"
                   key={carouselCards[carouselIndex]?._id}
                 >
-                  <div
-                    className="book-card book-card-large"
-                    style={{
-                      borderLeft: carouselCards[carouselIndex]?.colorTag
-                        ? `4px solid ${carouselCards[carouselIndex].colorTag}`
-                        : undefined,
-                    }}
-                  >
-                    {carouselCards[carouselIndex]?.coverImageId ? (
-                      <CoverImage
-                        storageId={carouselCards[carouselIndex].coverImageId!}
-                        className="book-card-cover-large"
-                      />
-                    ) : (
-                      <>
-                        <p className="book-card-label">Latest</p>
-                        <h4 className="book-card-title">
-                          {carouselCards[carouselIndex]?.title}
-                        </h4>
-                      </>
-                    )}
-                    {carouselCards[carouselIndex]?.category && (
-                      <span className="book-card-category">
-                        {carouselCards[carouselIndex].category}
-                      </span>
-                    )}
-                    <div className="book-card-divider" />
-                    <p className="book-card-author">
-                      {signature || "The Pen Book"}
-                    </p>
-                  </div>
+                  <BookCover
+                    id={carouselCards[carouselIndex]?._id || ""}
+                    slug={carouselCards[carouselIndex]?.slug || ""}
+                    title={carouselCards[carouselIndex]?.title || ""}
+                    coverImageId={carouselCards[carouselIndex]?.coverImageId}
+                    colorTag={carouselCards[carouselIndex]?.colorTag}
+                    category={carouselCards[carouselIndex]?.category}
+                    size="large"
+                  />
                 </Link>
 
                 {carouselCards.length > 1 && (
@@ -228,45 +194,30 @@ export default function HomePage() {
             </div>
           ) : latest ? (
             <div className="featured-main-book">
-              <Link href={`/${latest.slug}`} className="book-card-link">
-                <div
-                  className="book-card book-card-large"
-                  style={{
-                    borderLeft: latest.colorTag
-                      ? `4px solid ${latest.colorTag}`
-                      : undefined,
-                  }}
-                >
-                  {latest.coverImageId ? (
-                    <CoverImage
-                      storageId={latest.coverImageId}
-                      className="book-card-cover-large"
-                    />
-                  ) : (
-                    <>
-                      <p className="book-card-label">Latest</p>
-                      <h4 className="book-card-title">{latest.title}</h4>
-                    </>
-                  )}
-                  {latest.category && (
-                    <span className="book-card-category">
-                      {latest.category}
-                    </span>
-                  )}
-                  <div className="book-card-divider" />
-                  <p className="book-card-author">
-                    {signature || "The Pen Book"}
-                  </p>
-                </div>
-              </Link>
+              <BookCover
+                id={latest._id}
+                slug={latest.slug}
+                title={latest.title}
+                coverImageId={latest.coverImageId}
+                colorTag={latest.colorTag}
+                category={latest.category}
+                size="large"
+              />
             </div>
           ) : (
             <div className="featured-main-book">
-              <div className="book-card book-card-large">
-                <p className="book-card-label">Latest</p>
-                <h4 className="book-card-title">The Art of Writing</h4>
-                <div className="book-card-divider" />
-                <p className="book-card-author">The Pen Book</p>
+              <div className="book-cover book-cover-lg">
+                <div className="book-cover-spine" />
+                <div className="book-cover-content">
+                  <div className="book-cover-placeholder-lg">
+                    <div className="book-cover-placeholder-text">
+                      <p className="book-cover-label">Latest</p>
+                    </div>
+                  </div>
+                  <div className="book-cover-footer">
+                    <h3 className="book-cover-title-lg">The Art of Writing</h3>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -275,34 +226,16 @@ export default function HomePage() {
           {previousBooks.length > 0 && (
             <div className="featured-side-books">
               {previousBooks.map((book) => (
-                <Link
+                <BookCover
                   key={book._id}
-                  href={`/${book.slug}`}
-                  className="book-card-link"
-                >
-                  <div
-                    className="book-card book-card-small"
-                    style={{
-                      borderLeft: book.colorTag
-                        ? `3px solid ${book.colorTag}`
-                        : undefined,
-                    }}
-                  >
-                    {book.coverImageId ? (
-                      <CoverImage
-                        storageId={book.coverImageId}
-                        className="book-card-cover-small"
-                      />
-                    ) : (
-                      <h4 className="book-card-title-sm">{book.title}</h4>
-                    )}
-                    {book.category && (
-                      <span className="book-card-category-sm">
-                        {book.category}
-                      </span>
-                    )}
-                  </div>
-                </Link>
+                  id={book._id}
+                  slug={book.slug}
+                  title={book.title}
+                  coverImageId={book.coverImageId}
+                  colorTag={book.colorTag}
+                  category={book.category}
+                  size="small"
+                />
               ))}
             </div>
           )}
@@ -352,45 +285,43 @@ export default function HomePage() {
         )}
 
         {filteredWritings &&
-          filteredWritings.length > 0 &&
-          filteredWritings.map((writing) => (
-            <Link key={writing._id} href={`/${writing.slug}`}>
-              <article className="writing-item">
-                <div className="writing-item-top">
-                  {writing.colorTag && (
-                    <span
-                      className="color-dot"
-                      style={{ background: writing.colorTag }}
-                    />
-                  )}
-                  <h2 className="writing-title">{writing.title}</h2>
-                  {isNewWriting(writing._creationTime) && (
-                    <span className="update-badge new">NEW</span>
-                  )}
-                  {!isNewWriting(writing._creationTime) &&
-                    isRecentlyUpdated(
-                      writing._creationTime,
-                      writing.updatedAt
-                    ) && (
-                      <span className="update-badge updated">UPDATED</span>
+          filteredWritings.length > 0 && (
+            <div className="writings-grid">
+              {filteredWritings.map((writing) => (
+                <div key={writing._id} className="writings-grid-item">
+                  <BookCover
+                    id={writing._id}
+                    slug={writing.slug}
+                    title={writing.title}
+                    coverImageId={writing.coverImageId}
+                    colorTag={writing.colorTag}
+                    category={writing.category}
+                    size="large"
+                  />
+                  <div className="writings-grid-meta">
+                    <time className="writing-date">
+                      {formatDate(writing._creationTime)}
+                    </time>
+                    {(writing.viewCount ?? 0) > 0 && (
+                      <span className="view-count">
+                        👁 {writing.viewCount}
+                      </span>
                     )}
+                    {isNewWriting(writing._creationTime) && (
+                      <span className="update-badge new">NEW</span>
+                    )}
+                    {!isNewWriting(writing._creationTime) &&
+                      isRecentlyUpdated(
+                        writing._creationTime,
+                        writing.updatedAt
+                      ) && (
+                        <span className="update-badge updated">UPDATED</span>
+                      )}
+                  </div>
                 </div>
-                <div className="writing-item-bottom">
-                  <time className="writing-date">
-                    {formatDate(writing._creationTime)}
-                  </time>
-                  {writing.category && (
-                    <span className="category-badge">{writing.category}</span>
-                  )}
-                  {(writing.viewCount ?? 0) > 0 && (
-                    <span className="view-count">
-                      👁 {writing.viewCount}
-                    </span>
-                  )}
-                </div>
-              </article>
-            </Link>
-          ))}
+              ))}
+            </div>
+          )}
       </section>
     </div>
   );

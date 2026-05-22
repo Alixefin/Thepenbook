@@ -417,7 +417,7 @@ img {
 /* ─── WRITINGS SECTION ─── */
 .writings-section {
   padding: 0 var(--gutter) 60px;
-  max-width: var(--content-width);
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -430,6 +430,42 @@ img {
   margin-bottom: 32px;
   padding-top: 40px;
   border-top: 1px solid var(--color-border-strong);
+}
+
+/* Writings Grid Layout */
+.writings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 32px 24px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .writings-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 24px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .writings-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 12px;
+  }
+}
+
+.writings-grid-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.writings-grid-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.65rem;
+  align-items: center;
 }
 
 .writing-item {
@@ -1904,6 +1940,245 @@ img {
 .view-count-inline {
   font-size: inherit;
   color: var(--color-text-muted);
+}
+
+/* ─── BOOK COVER (Enhanced) ─── */
+.book-cover-link {
+  display: inline-block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.book-cover-link:hover {
+  transform: translateY(-8px);
+}
+
+.book-cover {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-card-bg);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.book-cover-link:hover .book-cover {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+/* Spine on the left */
+.book-cover-spine {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  z-index: 2;
+  transition: width 0.3s ease;
+}
+
+.book-cover-link:hover .book-cover-spine {
+  width: 6px;
+}
+
+/* Large variant */
+.book-cover-lg {
+  width: 220px;
+  height: 300px;
+}
+
+.book-cover-lg .book-cover-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.book-cover-image-lg {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.book-cover-placeholder-lg {
+  width: 100%;
+  height: 180px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent-theme) 100%);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+}
+
+.book-cover-link:hover .book-cover-placeholder-lg {
+  opacity: 1;
+}
+
+/* Small variant */
+.book-cover-sm {
+  width: 140px;
+  height: 200px;
+}
+
+.book-cover-sm .book-cover-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.book-cover-image-sm {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 3px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.book-cover-placeholder-sm {
+  width: 100%;
+  height: 110px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent-theme) 100%);
+  border-radius: 3px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+}
+
+.book-cover-link:hover .book-cover-placeholder-sm {
+  opacity: 1;
+}
+
+.book-cover-placeholder-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-primary-text);
+  font-style: italic;
+}
+
+/* Footer with title and category */
+.book-cover-footer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.book-cover-title-lg {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text);
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.3s ease;
+}
+
+.book-cover-link:hover .book-cover-title-lg {
+  color: var(--color-primary);
+}
+
+.book-cover-title-sm {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-text);
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.3s ease;
+}
+
+.book-cover-link:hover .book-cover-title-sm {
+  color: var(--color-primary);
+}
+
+.book-cover-category-lg {
+  display: inline-block;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 50px;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 500;
+  font-family: var(--font-body);
+  transition: all 0.3s ease;
+  width: fit-content;
+}
+
+.book-cover-link:hover .book-cover-category-lg {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.book-cover-category-sm {
+  display: inline-block;
+  font-size: 0.45rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 50px;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 500;
+  font-family: var(--font-body);
+  transition: all 0.3s ease;
+  width: fit-content;
+}
+
+.book-cover-link:hover .book-cover-category-sm {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.book-cover-label {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--color-primary-text);
+}
+
+/* Hover overlay for visual feedback */
+.book-cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  pointer-events: none;
+  transition: background 0.3s ease;
+  border-radius: 6px;
+}
+
+.book-cover-link:hover .book-cover-overlay {
+  background: rgba(0, 0, 0, 0.02);
 }
 
 /* ─── COMMENTS ─── */

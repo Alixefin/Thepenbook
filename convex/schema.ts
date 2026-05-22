@@ -12,9 +12,21 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
     coverImageId: v.optional(v.string()),
     viewCount: v.optional(v.number()),
+    dayPostedOn: v.optional(v.number()), // 0-6, day of week (0=Sunday)
+    readers: v.optional(v.array(v.string())), // array of fingerprints for unique reader tracking
   })
     .index("by_slug", ["slug"])
-    .index("by_category", ["category"]),
+    .index("by_category", ["category"])
+    .index("by_day", ["dayPostedOn"]),
+
+  dayCategories: defineTable({
+    day: v.number(), // 0-6, 0=Sunday
+    name: v.string(),
+    hexColor: v.string(), // e.g. "#FF5733"
+    accentColor: v.string(), // secondary color
+    heroHeadline: v.string(), // custom headline for that day
+    active: v.boolean(),
+  }).index("by_day", ["day"]),
 
   chapters: defineTable({
     writingId: v.id("writings"),
@@ -30,6 +42,14 @@ export default defineSchema({
     name: v.string(),
     text: v.string(),
   }).index("by_writing", ["writingId"]),
+
+  readRecords: defineTable({
+    writingId: v.id("writings"),
+    fingerprint: v.string(), // unique reader identifier
+    timestamp: v.number(),
+  })
+    .index("by_writing", ["writingId"])
+    .index("by_writing_fingerprint", ["writingId", "fingerprint"]),
 
   settings: defineTable({
     key: v.string(),

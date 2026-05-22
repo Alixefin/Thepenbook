@@ -299,6 +299,171 @@ export const setSetting = mutation({
     },
 });
 
+// ─── DAY CATEGORIES ──────────────────────────────────
+
+export const getDayCategory = query({
+    args: { day: v.number() },
+    handler: async (ctx, args) => {
+        const dayCategory = await ctx.db
+            .query("dayCategories")
+            .withIndex("by_day", (q) => q.eq("day", args.day))
+            .first();
+        return dayCategory;
+    },
+});
+
+export const getAllDayCategories = query({
+    args: {},
+    handler: async (ctx) => {
+        const categories = await ctx.db.query("dayCategories").collect();
+        return categories.sort((a, b) => a.day - b.day);
+    },
+});
+
+export const getTodayCategory = query({
+    args: {},
+    handler: async (ctx) => {
+        const today = new Date().getDay();
+        const dayCategory = await ctx.db
+            .query("dayCategories")
+            .withIndex("by_day", (q) => q.eq("day", today))
+            .first();
+        return dayCategory;
+    },
+});
+
+export const createDayCategory = mutation({
+    args: {
+        day: v.number(),
+        name: v.string(),
+        hexColor: v.string(),
+        accentColor: v.string(),
+        heroHeadline: v.string(),
+        active: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        // Check if category already exists for this day
+        const existing = await ctx.db
+            .query("dayCategories")
+            .withIndex("by_day", (q) => q.eq("day", args.day))
+            .first();
+        
+        if (existing) {
+            return existing._id;
+        }
+
+        const id = await ctx.db.insert("dayCategories", {
+            day: args.day,
+            name: args.name,
+            hexColor: args.hexColor,
+            accentColor: args.accentColor,
+            heroHeadline: args.heroHeadline,
+            active: args.active,
+        });
+        return id;
+    },
+});
+
+export const updateDayCategory = mutation({
+    args: {
+        day: v.number(),
+        name: v.optional(v.string()),
+        hexColor: v.optional(v.string()),
+        accentColor: v.optional(v.string()),
+        heroHeadline: v.optional(v.string()),
+        active: v.optional(v.boolean()),
+    },
+    handler: async (ctx, args) => {
+        const existing = await ctx.db
+            .query("dayCategories")
+            .withIndex("by_day", (q) => q.eq("day", args.day))
+            .first();
+        
+        if (!existing) {
+            throw new Error(`Day category for day ${args.day} not found`);
+        }
+
+        const updates: Record<string, unknown> = {};
+        if (args.name !== undefined) updates.name = args.name;
+        if (args.hexColor !== undefined) updates.hexColor = args.hexColor;
+        if (args.accentColor !== undefined) updates.accentColor = args.accentColor;
+        if (args.heroHeadline !== undefined) updates.heroHeadline = args.heroHeadline;
+        if (args.active !== undefined) updates.active = args.active;
+
+        await ctx.db.patch(existing._id, updates);
+        return existing._id;
+    },
+});
+
+// ─── UNIQUE READER TRACKING ──────────────────────────
+
+export const recordUniqueView = mutation({
+    args: {
+        id: v.id("writings"),
+        fingerprint: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const writing = await ctx.db.get(args.id);
+        if (!writing) return;
+
+        // Check if this fingerprint already read this writing
+        const existing = await ctx.db
+            .query("readRecords")
+            .withIndex("by_writing_fingerprint", (q) =>
+                q.eq("writingId", args.id).eq("fingerprint", args.fingerprint)
+            )
+            .first();
+
+        if (!existing) {
+            // New unique reader
+            await ctx.db.insert("readRecords", {
+                writingId: args.id,
+                fingerprint: args.fingerprint,
+                timestamp: Date.now(),
+            });
+            await ctx.db.patch(args.id, {
+                viewCount: (writing.viewCount || 0) + 1,
+                readers: [...(writing.readers || []), args.fingerprint],
+            });
+        }
+    },
+});
+
+export const getUniqueViewCount = query({
+    args: { id: v.id("writings") },
+    handler: async (ctx, args) => {
+        const writing = await ctx.db.get(args.id);
+        return writing?.viewCount || 0;
+    },
+});
+
+// ─── COMMENTS CAROUSEL ───────────────────────────────
+
+export const getRecentComments = query({
+    args: { limit: v.optional(v.number()) },
+    handler: async (ctx, args) => {
+        const limitCount = args.limit || 10;
+        const comments = await ctx.db
+            .query("comments")
+            .order("desc")
+            .take(limitCount);
+
+        // Enrich comments with writing titles
+        const enriched = await Promise.all(
+            comments.map(async (comment) => {
+                const writing = await ctx.db.get(comment.writingId);
+                return {
+                    ...comment,
+                    writingTitle: writing?.title || "Unknown",
+                    writingSlug: writing?.slug || "",
+                };
+            })
+        );
+
+        return enriched;
+    },
+});
+
 // ─── FILE STORAGE ────────────────────────────────────
 
 export const generateUploadUrl = mutation({

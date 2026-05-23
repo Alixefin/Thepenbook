@@ -63,6 +63,7 @@ export const create = mutation({
         category: v.optional(v.string()),
         colorTag: v.optional(v.string()),
         coverImageId: v.optional(v.string()),
+        dayPostedOn: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const id = await ctx.db.insert("writings", {
@@ -73,6 +74,7 @@ export const create = mutation({
             category: args.category,
             colorTag: args.colorTag,
             coverImageId: args.coverImageId,
+            dayPostedOn: args.dayPostedOn,
             updatedAt: Date.now(),
             viewCount: 0,
         });
@@ -90,6 +92,7 @@ export const update = mutation({
         category: v.optional(v.string()),
         colorTag: v.optional(v.string()),
         coverImageId: v.optional(v.string()),
+        dayPostedOn: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const { id, ...fields } = args;
@@ -379,16 +382,25 @@ export const updateDayCategory = mutation({
             .withIndex("by_day", (q) => q.eq("day", args.day))
             .first();
         
-        if (!existing) {
-            throw new Error(`Day category for day ${args.day} not found`);
-        }
-
-        const updates: Record<string, unknown> = {};
+        const updates: Record<string, any> = {};
         if (args.name !== undefined) updates.name = args.name;
         if (args.hexColor !== undefined) updates.hexColor = args.hexColor;
         if (args.accentColor !== undefined) updates.accentColor = args.accentColor;
         if (args.heroHeadline !== undefined) updates.heroHeadline = args.heroHeadline;
         if (args.active !== undefined) updates.active = args.active;
+
+        if (!existing) {
+            // Upsert fallback
+            const id = await ctx.db.insert("dayCategories", {
+                day: args.day,
+                name: args.name ?? `Day ${args.day}`,
+                hexColor: args.hexColor ?? "#b68d40",
+                accentColor: args.accentColor ?? "#C9956D",
+                heroHeadline: args.heroHeadline ?? "Stories that stay with you!",
+                active: args.active ?? true,
+            });
+            return id;
+        }
 
         await ctx.db.patch(existing._id, updates);
         return existing._id;

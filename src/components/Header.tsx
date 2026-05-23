@@ -22,6 +22,9 @@ export default function Header() {
         : [];
     const allCategories = [...DEFAULT_CATEGORIES, ...customCats];
 
+    const dayCategories = useQuery(api.writings.getAllDayCategories) || [];
+    const activeDayCategories = dayCategories.filter(d => d.active);
+
     const [mobileOpen, setMobileOpen] = useState(false);
     const [catOpen, setCatOpen] = useState(false);
 
@@ -58,19 +61,18 @@ export default function Header() {
                         </button>
                         {catOpen && (
                             <div className="nav-dropdown-menu">
-                                {allCategories.map((cat) => (
+                                {activeDayCategories.map((day) => (
                                     <Link
-                                        key={cat}
-                                        href={`/#writings?cat=${encodeURIComponent(cat)}`}
+                                        key={day.name}
+                                        href={`/#writings?cat=${encodeURIComponent(day.name)}`}
                                         onClick={() => {
                                             setCatOpen(false);
-                                            // Dispatch a custom event so the homepage can react
                                             window.dispatchEvent(
-                                                new CustomEvent("selectCategory", { detail: cat })
+                                                new CustomEvent("selectCategory", { detail: day.name })
                                             );
                                         }}
                                     >
-                                        {cat}
+                                        {day.name}
                                     </Link>
                                 ))}
                             </div>
@@ -107,23 +109,23 @@ export default function Header() {
                 <Link href="/#writings" onClick={() => setMobileOpen(false)}>
                     All Writings
                 </Link>
+                
                 {/* Mobile categories list */}
-                <div className="mobile-cat-heading">Categories</div>
-                {allCategories.map((cat) => (
+                {activeDayCategories.map((day) => (
                     <Link
-                        key={cat}
+                        key={day.name}
                         href={`/#writings`}
                         className="mobile-cat-link"
                         onClick={() => {
                             setMobileOpen(false);
                             setTimeout(() => {
                                 window.dispatchEvent(
-                                    new CustomEvent("selectCategory", { detail: cat })
+                                    new CustomEvent("selectCategory", { detail: day.name })
                                 );
                             }, 100);
                         }}
                     >
-                        {cat}
+                        {day.name}
                     </Link>
                 ))}
             </div>

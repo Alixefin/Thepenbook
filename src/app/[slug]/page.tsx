@@ -114,17 +114,31 @@ function ReadingContent() {
 
     const writing = useQuery(api.writings.getBySlug, { slug });
     const signature = useQuery(api.writings.getSetting, { key: "signature" });
-    const recordView = useMutation(api.writings.recordView);
+    const dayCategory = useQuery(
+        api.writings.getDayCategory,
+        writing && writing.dayPostedOn !== undefined
+            ? { day: writing.dayPostedOn }
+            : "skip"
+    );
+    const recordUniqueView = useMutation(api.writings.recordUniqueView);
     const viewRecorded = useRef(false);
     const [showShare, setShowShare] = useState(false);
 
-    // Record view once
+    // Record unique view once
     useEffect(() => {
         if (writing && !viewRecorded.current) {
             viewRecorded.current = true;
-            recordView({ id: writing._id });
+            // Generate or fetch anonymous fingerprint
+            let fingerprint = localStorage.getItem("penbook_fingerprint");
+            if (!fingerprint) {
+                const randomPart = Math.random().toString(36).substring(2, 15);
+                const timePart = Date.now().toString(36);
+                fingerprint = `fp_${timePart}_${randomPart}`;
+                localStorage.setItem("penbook_fingerprint", fingerprint);
+            }
+            recordUniqueView({ id: writing._id, fingerprint });
         }
-    }, [writing, recordView]);
+    }, [writing, recordUniqueView]);
 
     // Check if this writing supports chapters
     const hasChapters =
@@ -357,6 +371,9 @@ function ReadingContent() {
                     snippet={stripHtml(writing.content)}
                     author={signature || "The Pen Book"}
                     colorTag={writing.colorTag}
+                    dayCategoryName={dayCategory?.name}
+                    dayCategoryColor={dayCategory?.hexColor}
+                    dayCategoryAccent={dayCategory?.accentColor}
                     slug={slug}
                     onClose={() => setShowShare(false)}
                 />

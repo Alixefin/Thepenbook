@@ -21,19 +21,23 @@ export default function WritePage() {
     const generateUploadUrl = useMutation(api.writings.generateUploadUrl);
     const setSetting = useMutation(api.writings.setSetting);
 
-    // Custom categories
+    // Day categories from Convex
+    const dayCategories = useQuery(api.writings.getAllDayCategories);
+
+    // Custom sub-categories
     const customCatsRaw = useQuery(api.writings.getSetting, {
         key: "customCategories",
     });
     const customCats: string[] = customCatsRaw
         ? JSON.parse(customCatsRaw)
         : [];
-    const allCategories = [...DEFAULT_CATEGORIES, ...customCats];
+    const allSubCategories = [...DEFAULT_CATEGORIES, ...customCats];
 
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [slug, setSlug] = useState("");
-    const [category, setCategory] = useState("");
+    const [category, setCategory] = useState(""); // acts as sub-category
+    const [dayPostedOn, setDayPostedOn] = useState<number | undefined>(undefined); // acts as primary day category
     const [colorTag, setColorTag] = useState("");
     const [coverImageId, setCoverImageId] = useState("");
     const [saving, setSaving] = useState(false);
@@ -71,6 +75,7 @@ export default function WritePage() {
                         category: category || undefined,
                         colorTag: colorTag || undefined,
                         coverImageId: coverImageId || undefined,
+                        dayPostedOn: dayPostedOn,
                     });
                 } else {
                     const id = await createWriting({
@@ -81,6 +86,7 @@ export default function WritePage() {
                         category: category || undefined,
                         colorTag: colorTag || undefined,
                         coverImageId: coverImageId || undefined,
+                        dayPostedOn: dayPostedOn,
                     });
                     setDocId(id);
                 }
@@ -90,7 +96,7 @@ export default function WritePage() {
             }
             setSaving(false);
         },
-        [docId, createWriting, updateWriting, category, colorTag, coverImageId]
+        [docId, createWriting, updateWriting, category, colorTag, coverImageId, dayPostedOn]
     );
 
     const triggerAutoSave = useCallback(
@@ -103,6 +109,13 @@ export default function WritePage() {
 
     const handlePublish = async () => {
         if (!title.trim()) return;
+        
+        // Validation: require a primary daily category
+        if (dayPostedOn === undefined) {
+            alert("Please select a Daily Category/Theme before publishing!");
+            return;
+        }
+
         setSaving(true);
         try {
             if (docId) {
@@ -115,6 +128,7 @@ export default function WritePage() {
                     category: category || undefined,
                     colorTag: colorTag || undefined,
                     coverImageId: coverImageId || undefined,
+                    dayPostedOn: dayPostedOn,
                 });
             } else {
                 await createWriting({
@@ -125,6 +139,7 @@ export default function WritePage() {
                     category: category || undefined,
                     colorTag: colorTag || undefined,
                     coverImageId: coverImageId || undefined,
+                    dayPostedOn: dayPostedOn,
                 });
             }
             router.push("/admin");
@@ -176,6 +191,17 @@ export default function WritePage() {
     const hasChapters =
         category === "Novel" || category === "Short Stories";
 
+    // Handle day selection (auto-applies day colors to spine color tag)
+    const handleDayChange = (dayNum: number | undefined) => {
+        setDayPostedOn(dayNum);
+        if (dayNum !== undefined && dayCategories) {
+            const selected = dayCategories.find((dc) => dc.day === dayNum);
+            if (selected) {
+                setColorTag(selected.hexColor);
+            }
+        }
+    };
+
     return (
         <div>
             <div className="write-header">
@@ -208,9 +234,31 @@ export default function WritePage() {
             {slug && <p className="slug-preview">/{slug}</p>}
 
             {/* Category & Color Tag Row */}
-            <div className="meta-row">
-                <div className="meta-field">
-                    <label className="meta-label">Category</label>
+            <div className="meta-row" style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+                {/* 1. Primary Daily Theme Category */}
+                <div className="meta-field" style={{ flex: 1, minWidth: "200px" }}>
+                    <label className="meta-label">Daily Category (Primary Theme)*</label>
+                    <select
+                        value={dayPostedOn !== undefined ? dayPostedOn : ""}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            handleDayChange(val === "" ? undefined : parseInt(val, 10));
+                        }}
+                        className="meta-select"
+                        style={{ width: "100%", outline: "none", border: "1.5px solid var(--color-border-strong)", borderRadius: "12px", padding: "10px 14px", appearance: "none" }}
+                    >
+                        <option value="">-- Select Daily Theme --</option>
+                        {dayCategories && dayCategories.filter(d => d.active).map((dc) => (
+                            <option key={dc.day} value={dc.day}>
+                                {dc.name} ({["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dc.day]})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* 2. Format / Sub-Category */}
+                <div className="meta-field" style={{ flex: 1, minWidth: "200px" }}>
+                    <label className="meta-label">Sub-Category (Format)</label>
                     <div style={{ display: "flex", gap: 8 }}>
                         <select
                             value={category}
@@ -222,9 +270,10 @@ export default function WritePage() {
                                 }
                             }}
                             className="meta-select"
+                            style={{ width: "100%", outline: "none", border: "1.5px solid var(--color-border-strong)", borderRadius: "12px", padding: "10px 14px" }}
                         >
                             <option value="">None</option>
-                            {allCategories.map((cat) => (
+                            {allSubCategories.map((cat) => (
                                 <option key={cat} value={cat}>
                                     {cat}
                                 </option>
@@ -233,13 +282,14 @@ export default function WritePage() {
                         </select>
                     </div>
                     {showNewCat && (
-                        <div className="new-cat-row">
+                        <div className="new-cat-row" style={{ display: "flex", gap: 8, marginTop: 8 }}>
                             <input
                                 type="text"
                                 value={newCategory}
                                 onChange={(e) => setNewCategory(e.target.value)}
                                 placeholder="Category name"
                                 className="meta-input"
+                                style={{ outline: "none", border: "1.5px solid var(--color-border-strong)", borderRadius: "12px", padding: "8px 12px", flex: 1 }}
                                 autoFocus
                             />
                             <button onClick={handleAddCategory} className="btn btn-sm">
@@ -255,9 +305,10 @@ export default function WritePage() {
                     )}
                 </div>
 
-                <div className="meta-field">
-                    <label className="meta-label">Color Tag</label>
-                    <div className="color-picker">
+                {/* 3. Color Tag Selector */}
+                <div className="meta-field" style={{ minWidth: "250px" }}>
+                    <label className="meta-label">Spine Color Tag</label>
+                    <div className="color-picker" style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "8px" }}>
                         <button
                             onClick={() => setColorTag("")}
                             className={`color-swatch ${!colorTag ? "active" : ""}`}
@@ -265,6 +316,14 @@ export default function WritePage() {
                             style={{
                                 background: "transparent",
                                 border: "1.5px dashed rgba(0,0,0,0.2)",
+                                width: "24px",
+                                height: "24px",
+                                borderRadius: "50%",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "10px"
                             }}
                         >
                             ✕
@@ -275,7 +334,15 @@ export default function WritePage() {
                                 onClick={() => setColorTag(c.hex)}
                                 className={`color-swatch ${colorTag === c.hex ? "active" : ""}`}
                                 title={c.name}
-                                style={{ background: c.hex }}
+                                style={{
+                                    background: c.hex,
+                                    width: "24px",
+                                    height: "24px",
+                                    borderRadius: "50%",
+                                    border: colorTag === c.hex ? "2px solid #000" : "1px solid rgba(0,0,0,0.1)",
+                                    cursor: "pointer",
+                                    transform: colorTag === c.hex ? "scale(1.2)" : ""
+                                }}
                             />
                         ))}
                     </div>

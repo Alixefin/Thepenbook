@@ -2,7 +2,6 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import Link from "next/link";
 import {
   formatDate,
   DEFAULT_CATEGORIES,
@@ -11,10 +10,14 @@ import {
 } from "@/lib/utils";
 import { useState, useEffect, useCallback, useRef } from "react";
 import BookCover from "@/components/BookCover";
+import CommentsCarousel from "@/components/CommentsCarousel";
+import { useTheme } from "@/components/ThemeProvider";
 
 export default function HomePage() {
   const writings = useQuery(api.writings.listPublished);
   const signature = useQuery(api.writings.getSetting, { key: "signature" });
+  const writerRole = useQuery(api.writings.getSetting, { key: "writerRole" });
+  const writerQuote = useQuery(api.writings.getSetting, { key: "writerQuote" });
   const customCatsRaw = useQuery(api.writings.getSetting, {
     key: "customCategories",
   });
@@ -24,10 +27,12 @@ export default function HomePage() {
     : [];
   const allCategories = [...DEFAULT_CATEGORIES, ...customCats];
 
+  const dayCategories = useQuery(api.writings.getAllDayCategories) || [];
+  const activeDayCategories = dayCategories.filter(d => d.active);
+
+  const { theme } = useTheme();
+
   const [activeCategory, setActiveCategory] = useState("All");
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const autoTimer = useRef<NodeJS.Timeout | null>(null);
-  const hoveringRef = useRef(false);
 
   // Listen for category selection from header nav
   useEffect(() => {
@@ -40,69 +45,43 @@ export default function HomePage() {
     return () => window.removeEventListener("selectCategory", handler);
   }, []);
 
-  // Filter writings by category
-  const filteredWritings =
-    writings && activeCategory !== "All"
-      ? writings.filter((w) => w.category === activeCategory)
-      : writings;
+  // Parse category from URL query parameter on initial load if present
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const catParam = params.get("cat");
+      if (catParam) {
+        setActiveCategory(catParam);
+        // Wait briefly for content to render, then scroll to section
+        setTimeout(() => {
+          document.getElementById("writings")?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    }
+  }, []);
 
-  // Get used categories
-  const usedCategories = writings
-    ? allCategories.filter((cat) => writings.some((w) => w.category === cat))
-    : [];
-
-  // Build carousel cards: one per used category (latest published)
-  const carouselCards = writings
-    ? usedCategories
-      .map((cat) => {
-        const latest = writings.find((w) => w.category === cat);
-        return latest ? { ...latest, _cat: cat } : null;
-      })
-      .filter(Boolean) as (typeof writings extends (infer U)[] | undefined
-        ? U & { _cat: string }
-        : never)[]
+  // Get used day categories to display as filter tabs
+  const combinedCategories = writings
+    ? activeDayCategories
+        .filter((day) => writings.some((w) => w.dayPostedOn === day.day))
+        .map((day) => day.name)
     : [];
 
   // Latest overall
   const latest = writings && writings.length > 0 ? writings[0] : null;
-  // Previous books (after latest, up to 3)
-  const previousBooks = writings ? writings.slice(1, 4) : [];
 
-  // Bound carousel index
-  useEffect(() => {
-    if (carouselCards.length > 0 && carouselIndex >= carouselCards.length) {
-      setCarouselIndex(0);
-    }
-  }, [carouselCards.length, carouselIndex]);
-
-  // Auto-advance carousel
-  const advanceCarousel = useCallback(() => {
-    if (hoveringRef.current) return;
-    setCarouselIndex((prev) =>
-      carouselCards.length > 0 ? (prev + 1) % carouselCards.length : 0
-    );
-  }, [carouselCards.length]);
-
-  useEffect(() => {
-    if (carouselCards.length <= 1) return;
-    autoTimer.current = setInterval(advanceCarousel, 5000);
-    return () => {
-      if (autoTimer.current) clearInterval(autoTimer.current);
-    };
-  }, [advanceCarousel, carouselCards.length]);
-
-  const goPrev = () =>
-    setCarouselIndex((i) =>
-      i === 0 ? carouselCards.length - 1 : i - 1
-    );
-  const goNext = () =>
-    setCarouselIndex((i) => (i + 1) % carouselCards.length);
+  // Filter day categories to display based on the active tab
+  const displayedDayCategories = activeCategory === "All"
+    ? activeDayCategories.filter((day) => writings && writings.some((w) => w.dayPostedOn === day.day))
+    : activeDayCategories.filter((day) => day.name === activeCategory);
 
   return (
     <div>
       {/* ─── HERO ─── */}
       <section className="hero">
-        <h2 className="hero-heading">Stories that stay with you&nbsp;!</h2>
+        <h2 className="hero-heading">
+          {theme?.heroHeadline || "Stories that stay with you\u00A0!"}
+        </h2>
       </section>
 
       {/* ─── FEATURED SECTION ─── */}
@@ -115,10 +94,9 @@ export default function HomePage() {
                 <br />
                 {signature.split(" ").slice(1).join(" ")}
               </h3>
-              <p className="author-role">Writer and Storyteller</p>
+              <p className="author-role">{writerRole || "Writer and Storyteller"}</p>
               <p className="featured-quote">
-                &ldquo;A masterpiece of storytelling. Words that linger long
-                after you&apos;ve finished reading.&rdquo;
+                &ldquo;{writerQuote || "Stories crafted with care, designed to stay with you long after the last word."}&rdquo;
               </p>
             </>
           ) : (
@@ -128,71 +106,17 @@ export default function HomePage() {
                 <br />
                 Pen Book
               </h3>
-              <p className="author-role">A space for words</p>
+              <p className="author-role">{writerRole || "A space for words"}</p>
               <p className="featured-quote">
-                &ldquo;Stories crafted with care, designed to stay with you long
-                after the last word.&rdquo;
+                &ldquo;{writerQuote || "Stories crafted with care, designed to stay with you long after the last word."}&rdquo;
               </p>
             </>
           )}
         </div>
 
-        {/* ─── BOOK DISPLAY: latest big + previous small ─── */}
-        <div
-          className="featured-books-area"
-          onMouseEnter={() => {
-            hoveringRef.current = true;
-          }}
-          onMouseLeave={() => {
-            hoveringRef.current = false;
-          }}
-        >
-          {/* Main latest card (large) */}
-          {carouselCards.length > 0 ? (
-            <div className="featured-main-book">
-              <div className="carousel-container">
-                {carouselCards.length > 1 && (
-                  <button onClick={goPrev} className="carousel-arrow left">
-                    ‹
-                  </button>
-                )}
-
-                <Link
-                  href={`/${carouselCards[carouselIndex]?.slug}`}
-                  className="book-card-link"
-                  key={carouselCards[carouselIndex]?._id}
-                >
-                  <BookCover
-                    id={carouselCards[carouselIndex]?._id || ""}
-                    slug={carouselCards[carouselIndex]?.slug || ""}
-                    title={carouselCards[carouselIndex]?.title || ""}
-                    coverImageId={carouselCards[carouselIndex]?.coverImageId}
-                    colorTag={carouselCards[carouselIndex]?.colorTag}
-                    category={carouselCards[carouselIndex]?.category}
-                    size="large"
-                  />
-                </Link>
-
-                {carouselCards.length > 1 && (
-                  <button onClick={goNext} className="carousel-arrow right">
-                    ›
-                  </button>
-                )}
-
-                {carouselCards.length > 1 && (
-                  <div className="carousel-dots">
-                    {carouselCards.map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setCarouselIndex(i)}
-                        className={`carousel-dot ${i === carouselIndex ? "active" : ""}`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : latest ? (
+        {/* ─── BOOK DISPLAY: single latest book cover ─── */}
+        <div className="featured-books-area">
+          {latest ? (
             <div className="featured-main-book">
               <BookCover
                 id={latest._id}
@@ -202,6 +126,7 @@ export default function HomePage() {
                 colorTag={latest.colorTag}
                 category={latest.category}
                 size="large"
+                className="book-card-link"
               />
             </div>
           ) : (
@@ -221,24 +146,6 @@ export default function HomePage() {
               </div>
             </div>
           )}
-
-          {/* Previous books (smaller, beside the main) */}
-          {previousBooks.length > 0 && (
-            <div className="featured-side-books">
-              {previousBooks.map((book) => (
-                <BookCover
-                  key={book._id}
-                  id={book._id}
-                  slug={book.slug}
-                  title={book.title}
-                  coverImageId={book.coverImageId}
-                  colorTag={book.colorTag}
-                  category={book.category}
-                  size="small"
-                />
-              ))}
-            </div>
-          )}
         </div>
       </section>
 
@@ -247,7 +154,7 @@ export default function HomePage() {
         <h3 className="writings-section-title">All Writings</h3>
 
         {/* Category Filter Tabs */}
-        {usedCategories.length > 0 && (
+        {combinedCategories.length > 0 && (
           <div className="category-tabs">
             <button
               onClick={() => setActiveCategory("All")}
@@ -255,7 +162,7 @@ export default function HomePage() {
             >
               All
             </button>
-            {usedCategories.map((cat) => (
+            {combinedCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
@@ -273,56 +180,70 @@ export default function HomePage() {
           </div>
         )}
 
-        {filteredWritings && filteredWritings.length === 0 && (
+        {writings && writings.length === 0 && (
           <div className="empty-state">
             <h2 className="empty-title">Nothing yet.</h2>
-            <p className="empty-subtitle">
-              {activeCategory !== "All"
-                ? `No writings in "${activeCategory}" yet.`
-                : "The first words are yet to be written."}
-            </p>
+            <p className="empty-subtitle">The first words are yet to be written.</p>
           </div>
         )}
 
-        {filteredWritings &&
-          filteredWritings.length > 0 && (
-            <div className="writings-grid">
-              {filteredWritings.map((writing) => (
-                <div key={writing._id} className="writings-grid-item">
-                  <BookCover
-                    id={writing._id}
-                    slug={writing.slug}
-                    title={writing.title}
-                    coverImageId={writing.coverImageId}
-                    colorTag={writing.colorTag}
-                    category={writing.category}
-                    size="large"
-                  />
-                  <div className="writings-grid-meta">
-                    <time className="writing-date">
-                      {formatDate(writing._creationTime)}
-                    </time>
-                    {(writing.viewCount ?? 0) > 0 && (
-                      <span className="view-count">
-                        👁 {writing.viewCount}
-                      </span>
-                    )}
-                    {isNewWriting(writing._creationTime) && (
-                      <span className="update-badge new">NEW</span>
-                    )}
-                    {!isNewWriting(writing._creationTime) &&
-                      isRecentlyUpdated(
-                        writing._creationTime,
-                        writing.updatedAt
-                      ) && (
-                        <span className="update-badge updated">UPDATED</span>
+        {writings && displayedDayCategories.map((day) => {
+          const dayWritings = writings.filter((w) => w.dayPostedOn === day.day);
+          if (dayWritings.length === 0) return null;
+
+          return (
+            <div key={day.day} className="day-theme-section" style={{ '--day-color': day.hexColor } as React.CSSProperties}>
+              <div className="day-theme-section-header">
+                <span className="day-theme-indicator" style={{ backgroundColor: day.hexColor }}></span>
+                <h4 className="day-theme-title">{day.name}</h4>
+                <span className="day-theme-tagline">{day.heroHeadline}</span>
+              </div>
+              
+              <div className="writings-grid">
+                {dayWritings.map((writing) => (
+                  <div key={writing._id} className="writings-grid-item">
+                    <BookCover
+                      id={writing._id}
+                      slug={writing.slug}
+                      title={writing.title}
+                      coverImageId={writing.coverImageId}
+                      colorTag={writing.colorTag}
+                      category={writing.category}
+                      size="large"
+                    />
+                    <div className="writings-grid-meta">
+                      {writing.category && (
+                        <span className="writing-genre-badge">{writing.category}</span>
                       )}
+                      <time className="writing-date">
+                        {formatDate(writing._creationTime)}
+                      </time>
+                      {(writing.viewCount ?? 0) > 0 && (
+                        <span className="view-count">
+                          👁 {writing.viewCount} reads
+                        </span>
+                      )}
+                      {isNewWriting(writing._creationTime) && (
+                        <span className="update-badge new">NEW</span>
+                      )}
+                      {!isNewWriting(writing._creationTime) &&
+                        isRecentlyUpdated(
+                          writing._creationTime,
+                          writing.updatedAt
+                        ) && (
+                          <span className="update-badge updated">UPDATED</span>
+                        )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          )}
+          );
+        })}
       </section>
+
+      {/* ─── READER COMMENTS CAROUSEL ─── */}
+      <CommentsCarousel />
     </div>
   );
 }

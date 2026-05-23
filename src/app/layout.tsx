@@ -4,6 +4,7 @@ import ConvexClientProvider from "@/components/ConvexClientProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "The Pen Book",
@@ -30,6 +31,7 @@ export default function RootLayout({
             </div>
           </ThemeProvider>
         </ConvexClientProvider>
+        <Analytics />
       </body>
     </html>
   );

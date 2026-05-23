@@ -66,10 +66,10 @@ export const DEFAULT_DAY_CATEGORIES = [
  * Initialize day categories in Convex database
  * Call this once during setup or on first admin access
  */
-export async function initializeDayCategories(apiCalls: typeof api) {
+export async function initializeDayCategories(convexClient: any) {
   try {
     for (const dayCategory of DEFAULT_DAY_CATEGORIES) {
-      await apiCalls.writings.createDayCategory(dayCategory);
+      await convexClient.mutation(api.writings.createDayCategory, dayCategory);
     }
     console.log("Day categories initialized successfully");
   } catch (error) {

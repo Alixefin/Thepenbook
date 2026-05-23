@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DEFAULT_CATEGORIES } from "@/lib/utils";
 
 export default function Header() {
@@ -27,10 +27,43 @@ export default function Header() {
 
     const [mobileOpen, setMobileOpen] = useState(false);
     const [catOpen, setCatOpen] = useState(false);
+    const [darkMode, setDarkMode] = useState(false);
+
+    // Load saved theme preference on mount
+    useEffect(() => {
+        const saved = localStorage.getItem("theme");
+        if (saved === "dark") {
+            setDarkMode(true);
+            document.documentElement.setAttribute("data-theme", "dark");
+        }
+    }, []);
+
+    // Toggle dark/light mode
+    const toggleTheme = () => {
+        const next = !darkMode;
+        setDarkMode(next);
+        if (next) {
+            document.documentElement.setAttribute("data-theme", "dark");
+            localStorage.setItem("theme", "dark");
+        } else {
+            document.documentElement.removeAttribute("data-theme");
+            localStorage.setItem("theme", "light");
+        }
+    };
 
     return (
         <>
             <header className="site-header">
+                {/* Left side — mobile: theme toggle */}
+                <button
+                    className="theme-toggle theme-toggle-mobile"
+                    onClick={toggleTheme}
+                    aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                    title={darkMode ? "Light mode" : "Dark mode"}
+                >
+                    {darkMode ? "☀" : "☾"}
+                </button>
+
                 {/* Logo */}
                 <Link href="/" className="header-logo-area">
                     {logoUrl && (
@@ -40,9 +73,14 @@ export default function Header() {
                             className="header-logo-img"
                         />
                     )}
-                    <div>
+                    <div className="header-logo-inner">
                         <div className="header-logo-text">The Pen</div>
-                        <div className="header-logo-sub">B O O K</div>
+                        <div className="header-logo-sub">
+                            <span>B</span>
+                            <span>O</span>
+                            <span>O</span>
+                            <span>K</span>
+                        </div>
                     </div>
                 </Link>
 
@@ -78,9 +116,19 @@ export default function Header() {
                             </div>
                         )}
                     </div>
+
+                    {/* Dark mode toggle — desktop */}
+                    <button
+                        className="theme-toggle"
+                        onClick={toggleTheme}
+                        aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                        title={darkMode ? "Light mode" : "Dark mode"}
+                    >
+                        {darkMode ? "☀" : "☾"}
+                    </button>
                 </nav>
 
-                {/* Right side - mobile menu only */}
+                {/* Right side — mobile: hamburger only */}
                 <div className="header-right">
                     <button
                         className="mobile-menu-btn"
@@ -93,6 +141,7 @@ export default function Header() {
                     </button>
                 </div>
             </header>
+
 
             {/* Mobile nav overlay */}
             <div className={`mobile-nav-overlay ${mobileOpen ? "open" : ""}`}>
@@ -109,7 +158,7 @@ export default function Header() {
                 <Link href="/#writings" onClick={() => setMobileOpen(false)}>
                     All Writings
                 </Link>
-                
+
                 {/* Mobile categories list */}
                 {activeDayCategories.map((day) => (
                     <Link

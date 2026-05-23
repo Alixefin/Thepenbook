@@ -3,7 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 
-const QRCode = dynamic(() => import("qrcode.react"), { ssr: false });
+const QRCodeCanvas = dynamic(() => import("qrcode.react").then((mod) => mod.QRCodeCanvas), { ssr: false });
 
 interface ExportAsImageProps {
   title: string;
@@ -100,7 +100,7 @@ export default function ExportAsImage({
               <div className="export-qr-section">
                 <div className="export-qr-label">Read Full Story</div>
                 <div className="export-qr-code">
-                  <QRCode
+                  <QRCodeCanvas
                     value={fullUrl}
                     size={100}
                     level="H"

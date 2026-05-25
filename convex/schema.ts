@@ -11,6 +11,7 @@ export default defineSchema({
     colorTag: v.optional(v.string()),
     updatedAt: v.optional(v.number()),
     coverImageId: v.optional(v.string()),
+    audioFileId: v.optional(v.string()),
     viewCount: v.optional(v.number()),
     dayPostedOn: v.optional(v.number()), // 0-6, day of week (0=Sunday)
     readers: v.optional(v.array(v.string())), // array of fingerprints for unique reader tracking

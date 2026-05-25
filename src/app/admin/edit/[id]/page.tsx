@@ -45,14 +45,17 @@ export default function EditPage() {
     const [dayPostedOn, setDayPostedOn] = useState<number | undefined>(undefined); // primary day category
     const [colorTag, setColorTag] = useState("");
     const [coverImageId, setCoverImageId] = useState("");
+    const [audioFileId, setAudioFileId] = useState("");
     const [saving, setSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [initialized, setInitialized] = useState(false);
     const [newCategory, setNewCategory] = useState("");
     const [showNewCat, setShowNewCat] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [audioUploading, setAudioUploading] = useState(false);
 
     const coverInputRef = useRef<HTMLInputElement>(null);
+    const audioInputRef = useRef<HTMLInputElement>(null);
     const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
 
     // Get cover image URL
@@ -70,6 +73,7 @@ export default function EditPage() {
             setDayPostedOn(writing.dayPostedOn !== undefined ? writing.dayPostedOn : undefined);
             setColorTag(writing.colorTag || "");
             setCoverImageId(writing.coverImageId || "");
+            setAudioFileId(writing.audioFileId || "");
             setInitialized(true);
         }
     }, [writing, initialized]);
@@ -91,6 +95,7 @@ export default function EditPage() {
                     category: currentCategory || undefined,
                     colorTag: currentColor || undefined,
                     coverImageId: coverImageId || undefined,
+                    audioFileId: audioFileId || undefined,
                     dayPostedOn: currentDay,
                 });
                 setLastSaved(new Date());
@@ -99,7 +104,7 @@ export default function EditPage() {
             }
             setSaving(false);
         },
-        [id, updateWriting, coverImageId]
+        [id, updateWriting, coverImageId, audioFileId]
     );
 
     const triggerAutoSave = useCallback(
@@ -175,6 +180,43 @@ export default function EditPage() {
         }
         setUploading(false);
         if (coverInputRef.current) coverInputRef.current.value = "";
+    };
+
+    const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        const isAudio = file.type.startsWith("audio/") || 
+                        file.name.endsWith(".mp3") || 
+                        file.name.endsWith(".opus");
+                        
+        if (!isAudio) {
+            alert("Please select an audio file (.mp3 or .opus).");
+            return;
+        }
+        
+        setAudioUploading(true);
+        try {
+            const uploadUrl = await generateUploadUrl();
+            const response = await fetch(uploadUrl, {
+                method: "POST",
+                headers: { "Content-Type": file.type || "audio/mpeg" },
+                body: file,
+            });
+            if (!response.ok) throw new Error("Upload failed");
+            const { storageId } = await response.json();
+            setAudioFileId(storageId);
+            // Save to database immediately
+            await updateWriting({
+                id: id as Id<"writings">,
+                audioFileId: storageId,
+            });
+        } catch (err) {
+            console.error("Audio upload failed:", err);
+            alert("Audio upload failed. Please try again.");
+        }
+        setAudioUploading(false);
+        if (audioInputRef.current) audioInputRef.current.value = "";
     };
 
     const hasChapters =
@@ -414,6 +456,49 @@ export default function EditPage() {
                             <div className="spinner" />
                             <span style={{ marginLeft: 10, fontSize: "0.8rem" }}>
                                 Uploading...
+                            </span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Audio File Upload */}
+            <div className="audio-upload-section" style={{ marginTop: 20 }}>
+                <label className="meta-label">Audio Book (Optional - .mp3 or .opus)</label>
+                {audioFileId && (
+                    <div className="audio-preview-wrap" style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+                        <span className="audio-file-badge" style={{ background: "rgba(0,0,0,0.05)", padding: "4px 10px", borderRadius: 4, fontSize: "0.8rem", color: "var(--color-text)" }}>
+                            🎵 Audio book uploaded
+                        </span>
+                        <button
+                            onClick={async () => {
+                                setAudioFileId("");
+                                await updateWriting({
+                                    id: id as Id<"writings">,
+                                    audioFileId: "",
+                                });
+                            }}
+                            className="btn btn-sm"
+                            style={{ padding: "2px 8px", fontSize: "0.75rem" }}
+                        >
+                            Remove
+                        </button>
+                    </div>
+                )}
+                <div className="cover-upload-area">
+                    <input
+                        ref={audioInputRef}
+                        type="file"
+                        accept="audio/*"
+                        onChange={handleAudioUpload}
+                        disabled={audioUploading}
+                        className="cover-file-input"
+                    />
+                    {audioUploading && (
+                        <div className="cover-upload-overlay">
+                            <div className="spinner" />
+                            <span style={{ marginLeft: 10, fontSize: "0.8rem" }}>
+                                Uploading Audio...
                             </span>
                         </div>
                     )}

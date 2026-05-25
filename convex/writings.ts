@@ -63,6 +63,7 @@ export const create = mutation({
         category: v.optional(v.string()),
         colorTag: v.optional(v.string()),
         coverImageId: v.optional(v.string()),
+        audioFileId: v.optional(v.string()),
         dayPostedOn: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
@@ -74,6 +75,7 @@ export const create = mutation({
             category: args.category,
             colorTag: args.colorTag,
             coverImageId: args.coverImageId,
+            audioFileId: args.audioFileId,
             dayPostedOn: args.dayPostedOn,
             updatedAt: Date.now(),
             viewCount: 0,
@@ -92,6 +94,7 @@ export const update = mutation({
         category: v.optional(v.string()),
         colorTag: v.optional(v.string()),
         coverImageId: v.optional(v.string()),
+        audioFileId: v.optional(v.string()),
         dayPostedOn: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
@@ -489,5 +492,34 @@ export const getFileUrl = query({
     args: { storageId: v.string() },
     handler: async (ctx, args) => {
         return await ctx.storage.getUrl(args.storageId as any);
+    },
+});
+
+export const getRecentChapters = query({
+    args: {},
+    handler: async (ctx) => {
+        const chapters = await ctx.db
+            .query("chapters")
+            .filter((q) => q.eq(q.field("published"), true))
+            .collect();
+        
+        const results = [];
+        for (const ch of chapters) {
+            const writing = await ctx.db.get(ch.writingId);
+            if (writing && writing.published) {
+                results.push({
+                    _id: ch._id,
+                    title: ch.title,
+                    chapterNumber: ch.chapterNumber,
+                    updatedAt: ch.updatedAt || ch._creationTime,
+                    writingId: ch.writingId,
+                    writingTitle: writing.title,
+                    writingSlug: writing.slug,
+                });
+            }
+        }
+        
+        // Sort by updatedAt descending, return top 15
+        return results.sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 15);
     },
 });

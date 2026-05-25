@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import QRCode from "qrcode";
+import { Share2, Download } from "lucide-react";
 
 interface ShareCardProps {
     title: string;
@@ -354,10 +355,10 @@ export default function ShareCard({
                 {/* Actions */}
                 <div className="share-actions">
                     <button onClick={handleDownload} className="btn btn-primary-theme">
-                        📥 Save Image (A4)
+                        <Download size={16} style={{display: "inline", marginRight: "4px"}} /> Save Image (A4)
                     </button>
                     <button onClick={handleShare} className="btn">
-                        📤 Share Post
+                        <Share2 size={16} style={{display: "inline", marginRight: "4px"}} /> Share Post
                     </button>
                 </div>
             </div>

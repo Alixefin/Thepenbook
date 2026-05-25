@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import BookCover from "@/components/BookCover";
 import CommentsCarousel from "@/components/CommentsCarousel";
 import { useTheme } from "@/components/ThemeProvider";
+import { Eye } from "lucide-react";
 
 export default function HomePage() {
   const writings = useQuery(api.writings.listPublished);
@@ -220,7 +221,7 @@ export default function HomePage() {
                       </time>
                       {(writing.viewCount ?? 0) > 0 && (
                         <span className="view-count">
-                          👁 {writing.viewCount} reads
+                          <Eye size={16} style={{display: "inline", marginRight: "4px"}} /> {writing.viewCount} reads
                         </span>
                       )}
                       {isNewWriting(writing._creationTime) && (

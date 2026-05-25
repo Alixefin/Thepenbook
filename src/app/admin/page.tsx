@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
 import { formatDate, isNewWriting, isRecentlyUpdated } from "@/lib/utils";
 import { Id } from "../../../convex/_generated/dataModel";
+import { Eye } from "lucide-react";
 
 export default function AdminDashboard() {
     const writings = useQuery(api.writings.listAll);
@@ -82,7 +83,7 @@ export default function AdminDashboard() {
                                     {formatDate(writing._creationTime)} &middot; /{writing.slug}
                                     &nbsp;&middot;&nbsp;
                                     <span className="view-count-inline">
-                                        👁 {writing.viewCount || 0}
+                                        <Eye size={14} style={{display: "inline", marginRight: "4px"}} /> {writing.viewCount || 0}
                                     </span>
                                 </p>
                             </div>

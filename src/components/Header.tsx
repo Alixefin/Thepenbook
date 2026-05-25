@@ -5,6 +5,9 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useEffect } from "react";
 import { DEFAULT_CATEGORIES } from "@/lib/utils";
+import { Sun, Moon } from "lucide-react";
+
+import NotificationCenter from "./NotificationCenter";
 
 export default function Header() {
     const logoStorageId = useQuery(api.writings.getSetting, {
@@ -54,15 +57,18 @@ export default function Header() {
     return (
         <>
             <header className="site-header">
-                {/* Left side — mobile: theme toggle */}
-                <button
-                    className="theme-toggle theme-toggle-mobile"
-                    onClick={toggleTheme}
-                    aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-                    title={darkMode ? "Light mode" : "Dark mode"}
-                >
-                    {darkMode ? "☀" : "☾"}
-                </button>
+                {/* Left side — mobile: theme toggle + notifications */}
+                <div className="header-left-mobile">
+                    <button
+                        className="theme-toggle theme-toggle-mobile"
+                        onClick={toggleTheme}
+                        aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                        title={darkMode ? "Light mode" : "Dark mode"}
+                    >
+                        {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                    </button>
+                    <NotificationCenter />
+                </div>
 
                 {/* Logo */}
                 <Link href="/" className="header-logo-area">
@@ -117,6 +123,8 @@ export default function Header() {
                         )}
                     </div>
 
+                    <NotificationCenter />
+
                     {/* Dark mode toggle — desktop */}
                     <button
                         className="theme-toggle"
@@ -124,7 +132,7 @@ export default function Header() {
                         aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
                         title={darkMode ? "Light mode" : "Dark mode"}
                     >
-                        {darkMode ? "☀" : "☾"}
+                        {darkMode ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
                 </nav>
 

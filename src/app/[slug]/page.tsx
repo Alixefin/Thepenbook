@@ -8,6 +8,9 @@ import { formatDate } from "@/lib/utils";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import dynamic from "next/dynamic";
+import AudioPlayer from "@/components/AudioPlayer";
+import BookPageOpening from "@/components/BookPageOpening";
+import { Eye, Share2 } from "lucide-react";
 
 const ShareCard = dynamic(() => import("@/components/ShareCard"), {
     ssr: false,
@@ -278,91 +281,109 @@ function ReadingContent() {
     // Main writing view
     return (
         <div className="reading-container">
-            <Link href="/" className="back-link">
-                ← Back
-            </Link>
+            <BookPageOpening
+                coverNode={
+                    <>
+                        <Link href="/" className="back-link">
+                            ← Back
+                        </Link>
 
-            {/* Cover image */}
-            {writing.coverImageId && (
-                <CoverImage storageId={writing.coverImageId} />
-            )}
-
-            <h1 className="reading-title">{writing.title}</h1>
-
-            <div className="reading-meta-row">
-                <time
-                    className="reading-meta"
-                    style={{ border: "none", padding: 0, margin: 0 }}
-                >
-                    {formatDate(writing._creationTime)}
-                </time>
-                {writing.category && (
-                    <span className="category-badge">{writing.category}</span>
-                )}
-                {writing.colorTag && (
-                    <span
-                        className="color-dot"
-                        style={{ background: writing.colorTag }}
-                    />
-                )}
-                <span className="view-count">👁 {writing.viewCount || 0} reads</span>
-                <button
-                    onClick={() => setShowShare(true)}
-                    className="btn btn-sm share-btn"
-                >
-                    📤 Share
-                </button>
-            </div>
-
-            {/* Synopsis / content */}
-            {writing.content && (
-                <div
-                    className="prose"
-                    dangerouslySetInnerHTML={{ __html: writing.content }}
-                />
-            )}
-
-            {/* Table of Contents for chapter-based writings */}
-            {hasChapters && publishedChapters.length > 0 && (
-                <div className="toc-section">
-                    <h3 className="toc-heading">Chapters</h3>
-                    <div className="toc-list">
-                        {publishedChapters.map(
-                            (ch: {
-                                _id: string;
-                                chapterNumber: number;
-                                title: string;
-                            }) => (
-                                <Link
-                                    key={ch._id}
-                                    href={`/${slug}?ch=${ch.chapterNumber}`}
-                                    className="toc-item"
-                                >
-                                    <span className="toc-number">{ch.chapterNumber}</span>
-                                    <span className="toc-title">{ch.title}</span>
-                                </Link>
-                            )
+                        {writing.coverImageId ? (
+                            <div className="reading-cover-wrapper">
+                                <CoverImage storageId={writing.coverImageId} />
+                                <div className="reading-cover-title-overlay">
+                                    <h1 className="reading-title">{writing.title}</h1>
+                                </div>
+                            </div>
+                        ) : (
+                            <h1 className="reading-title">{writing.title}</h1>
                         )}
-                    </div>
-                </div>
-            )}
+                    </>
+                }
+                contentNode={
+                    <>
+                        <div className="reading-meta-row">
+                            <time
+                                className="reading-meta"
+                                style={{ border: "none", padding: 0, margin: 0 }}
+                            >
+                                {formatDate(writing._creationTime)}
+                            </time>
+                            {writing.category && (
+                                <span className="category-badge">{writing.category}</span>
+                            )}
+                            {writing.colorTag && (
+                                <span
+                                    className="color-dot"
+                                    style={{ background: writing.colorTag }}
+                                />
+                            )}
+                            <span className="view-count"><Eye size={16} style={{display: "inline", marginRight: "4px"}} /> {writing.viewCount || 0} reads</span>
+                            <button
+                                onClick={() => setShowShare(true)}
+                                className="btn btn-sm share-btn"
+                            >
+                                <Share2 size={16} style={{display: "inline", marginRight: "4px"}} /> Share
+                            </button>
+                        </div>
 
-            {hasChapters &&
-                publishedChapters.length === 0 &&
-                chapters !== undefined && (
-                    <div className="toc-section">
-                        <p className="empty-subtitle">Chapters coming soon.</p>
-                    </div>
-                )}
+                        {/* Audiobook Player */}
+                        {writing.audioFileId && (
+                            <AudioPlayer audioFileId={writing.audioFileId} />
+                        )}
 
-            {signature && (
-                <div className="writing-signature">
-                    <span className="signature-text">— {signature}</span>
-                </div>
-            )}
+                        {/* Synopsis / content */}
+                        {writing.content && (
+                            <div
+                                className="prose"
+                                dangerouslySetInnerHTML={{ __html: writing.content }}
+                            />
+                        )}
 
-            {/* Comments */}
-            <CommentsSection writingId={writing._id} />
+                        {/* Table of Contents for chapter-based writings */}
+                        {hasChapters && publishedChapters.length > 0 && (
+                            <div className="toc-section">
+                                <h3 className="toc-heading">Chapters</h3>
+                                <div className="toc-list">
+                                    {publishedChapters.map(
+                                        (ch: {
+                                            _id: string;
+                                            chapterNumber: number;
+                                            title: string;
+                                        }) => (
+                                            <Link
+                                                key={ch._id}
+                                                href={`/${slug}?ch=${ch.chapterNumber}`}
+                                                className="toc-item"
+                                            >
+                                                <span className="toc-number">{ch.chapterNumber}</span>
+                                                <span className="toc-title">{ch.title}</span>
+                                            </Link>
+                                        )
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {hasChapters &&
+                            publishedChapters.length === 0 &&
+                            chapters !== undefined && (
+                                <div className="toc-section">
+                                    <p className="empty-subtitle">Chapters coming soon.</p>
+                                </div>
+                            )}
+
+                        {signature && (
+                            <div className="writing-signature">
+                                <span className="signature-text">— {signature}</span>
+                            </div>
+                        )}
+
+                        {/* Comments */}
+                        <CommentsSection writingId={writing._id} />
+                    </>
+                }
+            />
 
             {/* Share modal */}
             {showShare && (
